@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "bookservice_admin_api",
+    "bookservice_user_api",
+    "bookservice_recommendations",
+    "bookservice_repository"
+]
