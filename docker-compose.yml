@@ -5,6 +5,10 @@ services:
     build:
       context: ./
       dockerfile: ./bookservice_admin_api/Dockerfile
+    environment:
+      - OTEL_EXPORTER_JAEGER_AGENT_HOST=jaeger
+    links:
+      - jaeger
 
   jaeger:
     image: jaegertracing/all-in-one:latest
