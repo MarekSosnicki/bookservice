@@ -1,4 +1,4 @@
 mod api;
 pub mod app_config;
-mod books_repository;
+pub mod books_repository;
 mod handlers;

@@ -316,6 +316,7 @@ dependencies = [
  "postgres",
  "serde",
  "serde_json",
+ "thiserror",
  "tracing",
  "tracing-actix-web",
  "tracing-bunyan-formatter",

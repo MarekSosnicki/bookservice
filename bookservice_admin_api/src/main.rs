@@ -1,14 +1,17 @@
+use std::sync::Arc;
+
 use actix_web::{App, HttpServer};
-use bookservice_admin_api::app_config::config_app;
-use opentelemetry::{
-    global
-};
+use actix_web::web::Data;
+use opentelemetry::global;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
 use opentelemetry_sdk::runtime::TokioCurrentThread;
 use tracing_actix_web::TracingLogger;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
-use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{EnvFilter, Registry};
+use tracing_subscriber::layer::SubscriberExt;
+
+use bookservice_admin_api::app_config::config_app;
+use bookservice_admin_api::books_repository::{BookRepository, InMemoryBookRepository};
 
 // Based on https://github.com/LukeMathWalker/tracing-actix-web/blob/main/examples/opentelemetry/src/main.rs#L15
 fn init_telemetry() {
@@ -17,6 +20,7 @@ fn init_telemetry() {
     // Start a new Jaeger trace pipeline.
     // Spans are exported in batch - recommended setup for a production application.
     global::set_text_map_propagator(TraceContextPropagator::new());
+    #[allow(deprecated)]
     let tracer = opentelemetry_jaeger::new_agent_pipeline()
         .with_service_name(app_name)
         .install_batch(TokioCurrentThread)
@@ -44,8 +48,12 @@ async fn main() -> std::io::Result<()> {
     init_telemetry();
     println!("starting HTTP server at http://localhost:8080");
 
-    HttpServer::new(|| {
+    let books_repository: Arc<dyn BookRepository + Send + Sync> =
+        Arc::new(InMemoryBookRepository::new());
+
+    HttpServer::new(move || {
         App::new()
+            .app_data(Data::new(books_repository.clone()))
             .wrap(TracingLogger::default())
             .configure(config_app)
     })

@@ -1,5 +1,5 @@
 [workspace]
-
+resolver = "2"
 members = [
     "bookservice_admin_api",
     "bookservice_user_api",
