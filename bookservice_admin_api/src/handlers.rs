@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use actix_web::{HttpResponse, web};
 use actix_web::http::Error;
+use actix_web::http::header::LOCATION;
 use actix_web::web::Data;
 
 use crate::api::{BookDetails, BookDetailsPatch, BookId, GetAllBooksResponse};
@@ -30,7 +31,9 @@ pub async fn add_book(
     details: web::Json<BookDetails>,
 ) -> HttpResponse {
     match books_repository.add_book(details.into_inner()) {
-        Ok(_) => HttpResponse::Ok().finish(),
+        Ok(book_id) => HttpResponse::Ok()
+            .append_header((LOCATION, format!("/api/book/{}", book_id)))
+            .finish(),
         Err(err) => {
             tracing::error!("Add book failed {}", err);
             HttpResponse::InternalServerError().finish()
