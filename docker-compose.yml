@@ -9,6 +9,7 @@ services:
       - OTEL_EXPORTER_JAEGER_AGENT_HOST=jaeger
     links:
       - jaeger
+      - db
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -31,3 +32,17 @@ services:
       - 16686:16686 # UI port
       - 14269:14269 # collector admin port: health check at / and metrics at /metrics
       - 9411:9411 # Zipkin compatible endpoint
+
+  db:
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - db:/var/lib/postgresql/data
+volumes:
+  db:
+    driver: local
