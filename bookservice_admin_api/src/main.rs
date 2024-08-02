@@ -1,3 +1,4 @@
+use std::env;
 use std::sync::Arc;
 
 use actix_web::{App, HttpServer};
@@ -11,7 +12,9 @@ use tracing_subscriber::{EnvFilter, Registry};
 use tracing_subscriber::layer::SubscriberExt;
 
 use bookservice_admin_api::app_config::config_app;
-use bookservice_admin_api::books_repository::{BookRepository, InMemoryBookRepository};
+use bookservice_admin_api::books_repository::{
+    BookRepository, InMemoryBookRepository, PostgresBooksRepository, PostgresBooksRepositoryConfig,
+};
 
 // Based on https://github.com/LukeMathWalker/tracing-actix-web/blob/main/examples/opentelemetry/src/main.rs#L15
 fn init_telemetry() {
@@ -48,8 +51,26 @@ async fn main() -> std::io::Result<()> {
     init_telemetry();
     println!("starting HTTP server at http://localhost:8080");
 
-    let books_repository: Arc<dyn BookRepository + Send + Sync> =
-        Arc::new(InMemoryBookRepository::new());
+    let use_in_memory_db = env::var("USE_IN_MEMORY_DB")
+        .map(|value| value.to_lowercase() == "true")
+        .unwrap_or(false);
+    let pg_hostname = env::var("DB_HOST").unwrap_or("127.0.0.1".to_string());
+    let pg_username = env::var("DB_USERNAME").unwrap_or("postgres".to_string());
+    let pg_password = env::var("DB_PASSWORD").unwrap_or("postgres".to_string());
+
+    let books_repository: Arc<dyn BookRepository + Send + Sync> = if use_in_memory_db {
+        Arc::new(InMemoryBookRepository::new())
+    } else {
+        Arc::new(
+            PostgresBooksRepository::init(PostgresBooksRepositoryConfig {
+                hostname: pg_hostname,
+                username: pg_username,
+                password: pg_password,
+            })
+            .await
+            .expect("Failed to init postgres"),
+        )
+    };
 
     HttpServer::new(move || {
         App::new()

@@ -7,8 +7,13 @@ services:
       dockerfile: ./bookservice_admin_api/Dockerfile
     environment:
       - OTEL_EXPORTER_JAEGER_AGENT_HOST=jaeger
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
     links:
       - jaeger
+      - db
+    depends_on:
       - db
 
   jaeger:
