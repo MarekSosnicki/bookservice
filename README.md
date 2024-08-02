@@ -6,10 +6,8 @@
 
 - bookservice_admin_api
     - rename?
-    - add postgres
     - add metrics
     - add unit tests
-    - add call to user api service to get user reserving book into details?
 - bookservice_user_api
     - rename?
     - add api
