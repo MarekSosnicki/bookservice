@@ -49,22 +49,21 @@ cargo test --features system_tests
 
 # TODO List
 
-- bookservice_admin_api
-    - rename?
+- bookservice_reservations
     - add metrics
-    - add unit tests
-- bookservice_user_api
-    - rename?
-    - add api
+    - add client for API
+- bookservice_reservations
     - add postgres
     - add metrics
     - add unit tests
-    - add to docker compose
+    - add client for API
 - bookservice recommendations
-    - add implmentation
-    - add postgres?
+    - add api
+    - add worker
+    - add postgres or redis
 - Other
-    - Add readme
+    - Add readme for all services
+    - Add
     - add nginx for a single endpoint?
     - Add integration test for the backend
     - add health checks for docker

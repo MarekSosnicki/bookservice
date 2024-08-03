@@ -9,12 +9,18 @@ mod in_memory_reservations_repository;
 mod postgres_reservations_repository;
 
 #[derive(Debug, thiserror::Error)]
-enum ReservationsRepositoryError {
+pub enum ReservationsRepositoryError {
     #[error("Book {0} not found")]
-    BookNotFound(BookId),
+    BookNotReserved(BookId),
 
     #[error("User {0} not found")]
     UserNotFound(UserId),
+
+    #[error("Book {0} already reserved")]
+    BookAlreadyReserved(BookId),
+
+    #[error("Book {0} reserved by different user")]
+    BookReservedByDifferentUser(BookId),
 
     #[error("Failed to deserialize book: {0}")]
     DeserializationError(#[from] serde_json::Error),
@@ -32,10 +38,7 @@ pub trait ReservationsRepository: Send + Sync {
 
     async fn get_user(&self, id: UserId) -> Result<UserDetails, ReservationsRepositoryError>;
 
-    async fn get_all_users(
-        &self,
-        username: String,
-    ) -> Result<Vec<UsernameAndId>, ReservationsRepositoryError>;
+    async fn get_all_user_ids(&self) -> Result<Vec<UserId>, ReservationsRepositoryError>;
 
     async fn reserve_book(
         &self,

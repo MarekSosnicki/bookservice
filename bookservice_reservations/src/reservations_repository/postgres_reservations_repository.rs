@@ -87,10 +87,7 @@ impl ReservationsRepository for PostgresReservationsRepository {
         todo!()
     }
 
-    async fn get_all_users(
-        &self,
-        username: String,
-    ) -> Result<Vec<UsernameAndId>, ReservationsRepositoryError> {
+    async fn get_all_user_ids(&self) -> Result<Vec<UserId>, ReservationsRepositoryError> {
         todo!()
     }
 

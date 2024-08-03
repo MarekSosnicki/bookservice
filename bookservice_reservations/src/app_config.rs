@@ -19,10 +19,10 @@ pub fn config_app(cfg: &mut web::ServiceConfig) {
                                 )
                                 .service(
                                     web::resource("/history")
-                                        .route(web::post().to(handlers::get_reservations_history)),
+                                        .route(web::get().to(handlers::get_reservations_history)),
                                 )
                                 .service(
-                                    web::resource("/{book_id}")
+                                    web::resource("/reservation/{book_id}")
                                         .route(web::post().to(handlers::reserve_book))
                                         .route(web::delete().to(handlers::unreserve_book)),
                                 ),

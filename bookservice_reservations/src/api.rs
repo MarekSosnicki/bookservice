@@ -7,7 +7,6 @@ pub type BookId = i32;
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Apiv2Schema)]
 pub struct UserDetails {
     pub username: String,
-    pub name: String,
     pub favourite_tags: Vec<String>,
 }
 
