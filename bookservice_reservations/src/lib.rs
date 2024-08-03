@@ -1,3 +1,4 @@
+pub mod api;
 pub mod app_config;
 mod handlers;
-pub mod users_repository;
+pub mod reservations_repository;

@@ -12,6 +12,7 @@ pub fn config_app(cfg: &mut web::ServiceConfig) {
                         .service(web::resource("").route(web::post().to(handlers::add_user)))
                         .service(
                             web::scope("/{user_id}")
+                                .service(web::resource("").route(web::get().to(handlers::get_user)))
                                 .service(
                                     web::resource("/reservations")
                                         .route(web::get().to(handlers::get_all_reservations)),

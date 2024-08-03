@@ -15,6 +15,7 @@ services:
       - bookservice_repository_db
     depends_on:
       - bookservice_repository_db
+    restart: always
 
 
   bookservice_reservations_api:
@@ -33,6 +34,7 @@ services:
       - bookservice_reservations_db
     depends_on:
       - bookservice_reservations_db
+    restart: always
 
 
   jaeger:

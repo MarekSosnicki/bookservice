@@ -12,7 +12,7 @@ use tracing_subscriber::{EnvFilter, Registry};
 use tracing_subscriber::layer::SubscriberExt;
 
 use bookservice_reservations::app_config::config_app;
-use bookservice_reservations::users_repository::{
+use bookservice_reservations::reservations_repository::{
     InMemoryReservationsRepository, PostgresReservationsRepository,
     PostgresReservationsRepositoryConfig, ReservationsRepository,
 };
@@ -54,7 +54,7 @@ async fn main() -> std::io::Result<()> {
 
     let use_in_memory_db = env::var("USE_IN_MEMORY_DB")
         .map(|value| value.to_lowercase() == "true")
-        .unwrap_or(false);
+        .unwrap_or(true); // TODO: Make it false after testing in memory
     let pg_hostname = env::var("DB_HOST").unwrap_or("127.0.0.1".to_string());
     let pg_username = env::var("DB_USERNAME").unwrap_or("postgres".to_string());
     let pg_password = env::var("DB_PASSWORD").unwrap_or("postgres".to_string());
