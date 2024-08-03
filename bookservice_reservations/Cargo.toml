@@ -1,5 +1,5 @@
 [package]
-name = "bookservice_repository"
+name = "bookservice_reservations"
 version = "0.1.0"
 edition = "2021"
 

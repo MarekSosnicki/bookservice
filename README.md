@@ -65,7 +65,6 @@ cargo test --features system_tests
     - add postgres?
 - Other
     - Add readme
-    - add api documentation (paperclip?)
     - add nginx for a single endpoint?
     - Add integration test for the backend
     - add health checks for docker

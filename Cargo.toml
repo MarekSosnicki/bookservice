@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "bookservice_repository",
-    "bookservice_user_api",
+    "bookservice_reservations",
     "bookservice_recommendations",
     "bookservice_tests",
 ]

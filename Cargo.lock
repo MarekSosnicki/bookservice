@@ -432,7 +432,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "bookservice_admin_api"
+name = "bookservice_recommendations"
+version = "0.1.0"
+
+[[package]]
+name = "bookservice_repository"
 version = "0.1.0"
 dependencies = [
  "actix-web",
@@ -460,8 +464,32 @@ dependencies = [
 ]
 
 [[package]]
-name = "bookservice_recommendations"
+name = "bookservice_reservations"
 version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "async-trait",
+ "config",
+ "json-patch",
+ "opentelemetry",
+ "opentelemetry-jaeger",
+ "opentelemetry_sdk",
+ "paperclip",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "testcontainers",
+ "thiserror",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-actix-web",
+ "tracing-bunyan-formatter",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "bookservice_tests"
@@ -470,13 +498,6 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "bookservice_user_api"
-version = "0.1.0"
-dependencies = [
- "actix-web",
 ]
 
 [[package]]

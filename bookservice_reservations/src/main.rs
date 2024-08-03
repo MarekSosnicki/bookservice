@@ -11,14 +11,15 @@ use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{EnvFilter, Registry};
 use tracing_subscriber::layer::SubscriberExt;
 
-use bookservice_repository::app_config::config_app;
-use bookservice_repository::books_repository::{
-    BookRepository, InMemoryBookRepository, PostgresBooksRepository, PostgresBooksRepositoryConfig,
+use bookservice_reservations::app_config::config_app;
+use bookservice_reservations::users_repository::{
+    InMemoryReservationsRepository, PostgresReservationsRepository,
+    PostgresReservationsRepositoryConfig, ReservationsRepository,
 };
 
 // Based on https://github.com/LukeMathWalker/tracing-actix-web/blob/main/examples/opentelemetry/src/main.rs#L15
 fn init_telemetry() {
-    let app_name = "bookservice_repository";
+    let app_name = "bookservice_reservations";
 
     // Start a new Jaeger trace pipeline.
     // Spans are exported in batch - recommended setup for a production application.
@@ -58,11 +59,11 @@ async fn main() -> std::io::Result<()> {
     let pg_username = env::var("DB_USERNAME").unwrap_or("postgres".to_string());
     let pg_password = env::var("DB_PASSWORD").unwrap_or("postgres".to_string());
 
-    let books_repository: Arc<dyn BookRepository + Send + Sync> = if use_in_memory_db {
-        Arc::new(InMemoryBookRepository::new())
+    let books_repository: Arc<dyn ReservationsRepository> = if use_in_memory_db {
+        Arc::new(InMemoryReservationsRepository::new())
     } else {
         Arc::new(
-            PostgresBooksRepository::init(PostgresBooksRepositoryConfig {
+            PostgresReservationsRepository::init(PostgresReservationsRepositoryConfig {
                 hostname: pg_hostname,
                 username: pg_username,
                 password: pg_password,

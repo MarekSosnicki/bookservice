@@ -1,7 +1,7 @@
 services:
-  bookservice_admin_api:
+  bookservice_repository_api:
     ports:
-      - 1234:8080
+      - 8001:8080
     build:
       context: ./
       dockerfile: bookservice_repository/Dockerfile
@@ -9,12 +9,31 @@ services:
       - OTEL_EXPORTER_JAEGER_AGENT_HOST=jaeger
       - DB_USERNAME=postgres
       - DB_PASSWORD=postgres
-      - DB_HOST=db
+      - DB_HOST=bookservice_repository_db
     links:
       - jaeger
-      - db
+      - bookservice_repository_db
     depends_on:
-      - db
+      - bookservice_repository_db
+
+
+  bookservice_reservations_api:
+    ports:
+      - 8002:8080
+    build:
+      context: ./
+      dockerfile: bookservice_reservations/Dockerfile
+    environment:
+      - OTEL_EXPORTER_JAEGER_AGENT_HOST=jaeger
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=bookservice_reservations_db
+    links:
+      - jaeger
+      - bookservice_reservations_db
+    depends_on:
+      - bookservice_reservations_db
+
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -38,7 +57,7 @@ services:
       - 14269:14269 # collector admin port: health check at / and metrics at /metrics
       - 9411:9411 # Zipkin compatible endpoint
 
-  db:
+  bookservice_repository_db:
     image: postgres:latest
     restart: always
     environment:
@@ -47,7 +66,19 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db:/var/lib/postgresql/data
+      - bookservice_repository_db:/var/lib/postgresql/data
+
+  bookservice_reservations_db:
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - bookservice_reservations_db:/var/lib/postgresql/data
+
 volumes:
-  db:
+  bookservice_repository_db:
+    driver: local
+  bookservice_reservations_db:
     driver: local
