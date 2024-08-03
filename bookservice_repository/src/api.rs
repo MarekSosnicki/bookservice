@@ -34,8 +34,3 @@ pub struct BookDetailsPatch {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
-pub struct GetAllBooksResponse {
-    pub books: Vec<BookTitleAndId>,
-}

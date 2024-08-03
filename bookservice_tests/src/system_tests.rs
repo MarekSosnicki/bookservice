@@ -5,11 +5,12 @@ use serde_json::json;
 
 #[test]
 /// Simple test for bookservice repository
-/// Creates two books
-/// Gets them
-/// Patches one of them
+/// Creates a book
+/// Get the book
+/// Patches the book
+/// Gets list of books and checks if the book is there
 fn bookservice_repository_e2e_test() {
-    let bookservice_repository_url = "http://127.0.0.1:1234";
+    let bookservice_repository_url = "http://127.0.0.1:8001";
 
     let client = reqwest::blocking::Client::new();
 
@@ -106,12 +107,7 @@ fn bookservice_repository_e2e_test() {
         title: String,
     }
 
-    #[derive(Deserialize)]
-    struct GetAllResponse {
-        books: Vec<BookIdAndTitle>,
-    }
-
-    let get_all_response_body: GetAllResponse =
+    let get_all_response_body: Vec<BookIdAndTitle> =
         get_all_response.json().expect("Failed to parse response");
 
     let book_id: i32 = location
@@ -122,7 +118,6 @@ fn bookservice_repository_e2e_test() {
         .expect("failed to parse book id");
 
     assert!(get_all_response_body
-        .books
         .iter()
         .any(|id_and_title| id_and_title.book_id == book_id && id_and_title.title == updated_title))
 }
