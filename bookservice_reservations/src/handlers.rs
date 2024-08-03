@@ -9,6 +9,7 @@ use paperclip::actix::{
 };
 
 use crate::api::{BookId, ReservationHistoryRecord, UserDetails, UserId};
+use crate::book_existance_checker::BookExistanceChecker;
 use crate::reservations_repository::{ReservationsRepository, ReservationsRepositoryError};
 
 impl ResponseError for ReservationsRepositoryError {
@@ -92,17 +93,25 @@ pub async fn get_reservations_history(
 
 #[api_v2_operation]
 pub async fn reserve_book(
+    book_existance_checker: Data<BookExistanceChecker>,
     reservations_repository: Data<Arc<dyn ReservationsRepository>>,
     user_and_book_id: web::Path<(UserId, BookId)>,
 ) -> Result<HttpResponse, Error> {
     let (user_id, book_id) = user_and_book_id.into_inner();
 
-    // TODO: Add api call to check if book exists
-    reservations_repository
-        .reserve_book(user_id, book_id)
-        .await?;
+    let book_exists = book_existance_checker
+        .check_book_existance(book_id)
+        .await
+        .map_err(|err| ReservationsRepositoryError::Other(err.to_string()))?;
 
-    Ok(HttpResponse::Ok().finish())
+    if book_exists {
+        reservations_repository
+            .reserve_book(user_id, book_id)
+            .await?;
+        Ok(HttpResponse::Ok().finish())
+    } else {
+        Ok(HttpResponse::NotFound().body(format!("Book not found {}", book_id)))
+    }
 }
 
 #[api_v2_operation]

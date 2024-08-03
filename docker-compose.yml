@@ -29,9 +29,11 @@ services:
       - DB_USERNAME=postgres
       - DB_PASSWORD=postgres
       - DB_HOST=bookservice_reservations_db
+      - BOOKSERVICE_REPOSITORY_URL=http://bookservice_repository_api:8080
     links:
       - jaeger
       - bookservice_reservations_db
+      - bookservice_repository_api
     depends_on:
       - bookservice_reservations_db
     restart: always

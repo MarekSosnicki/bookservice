@@ -67,5 +67,5 @@ cargo test --features system_tests
     - add nginx for a single endpoint?
     - Add integration test for the backend
     - add health checks for docker
-    - 
+    - Speedup dockerfiles
   

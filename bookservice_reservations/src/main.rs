@@ -12,6 +12,7 @@ use tracing_subscriber::{EnvFilter, Registry};
 use tracing_subscriber::layer::SubscriberExt;
 
 use bookservice_reservations::app_config::config_app;
+use bookservice_reservations::book_existance_checker::BookExistanceChecker;
 use bookservice_reservations::reservations_repository::{
     InMemoryReservationsRepository, PostgresReservationsRepository,
     PostgresReservationsRepositoryConfig, ReservationsRepository,
@@ -58,6 +59,8 @@ async fn main() -> std::io::Result<()> {
     let pg_hostname = env::var("DB_HOST").unwrap_or("127.0.0.1".to_string());
     let pg_username = env::var("DB_USERNAME").unwrap_or("postgres".to_string());
     let pg_password = env::var("DB_PASSWORD").unwrap_or("postgres".to_string());
+    let bookservice_repository_url =
+        env::var("BOOKSERVICE_REPOSITORY_URL").unwrap_or("http://localhost:8080".to_string());
 
     let books_repository: Arc<dyn ReservationsRepository> = if use_in_memory_db {
         Arc::new(InMemoryReservationsRepository::new())
@@ -77,6 +80,9 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap_api()
             .app_data(web::Data::new(books_repository.clone()))
+            .app_data(web::Data::new(BookExistanceChecker::new(
+                bookservice_repository_url.clone(),
+            )))
             .wrap(TracingLogger::default())
             .configure(config_app)
             .with_json_spec_at("/apispec/v2")

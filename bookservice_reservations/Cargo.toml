@@ -26,6 +26,10 @@ tokio = "1"
 thiserror = "1"
 parking_lot = "0.12.3"
 paperclip = { version = "0.8", features = ["actix4"] }
+reqwest = { version = "0.12", features = ["rustls-tls"] }
+reqwest-middleware = "0.3"
+reqwest-retry = "0.6"
+reqwest-tracing = { version = "0.5", features = ["opentelemetry_0_22"] }
 
 [dev-dependencies]
 testcontainers = { version = "0.21", features = ["blocking"] }
