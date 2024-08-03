@@ -25,6 +25,7 @@ json-patch = "2"
 tokio = "1"
 thiserror = "1"
 parking_lot = "0.12.3"
+paperclip = { version = "0.8", features = ["actix4"] }
 
 [dev-dependencies]
 testcontainers = { version = "0.21", features = ["blocking"] }

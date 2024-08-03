@@ -1,15 +1,16 @@
+use paperclip::actix::Apiv2Schema;
 use serde::{Deserialize, Serialize};
 
 pub type BookId = i32;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Apiv2Schema)]
 /// Struct containing book id and title
 pub struct BookTitleAndId {
     pub book_id: BookId,
     pub title: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Apiv2Schema)]
 /// Struct representing details of the book
 pub struct BookDetails {
     pub title: String,
@@ -19,7 +20,7 @@ pub struct BookDetails {
     pub tags: Vec<String>,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Apiv2Schema)]
 /// Struct representing a patch to book details. Allows to specify only a few fields and patch the current details
 pub struct BookDetailsPatch {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -34,7 +35,7 @@ pub struct BookDetailsPatch {
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
 pub struct GetAllBooksResponse {
     pub books: Vec<BookTitleAndId>,
 }

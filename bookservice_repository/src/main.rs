@@ -2,10 +2,10 @@ use std::env;
 use std::sync::Arc;
 
 use actix_web::{App, HttpServer};
-use actix_web::web::Data;
 use opentelemetry::global;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
 use opentelemetry_sdk::runtime::TokioCurrentThread;
+use paperclip::actix::{OpenApiExt, web};
 use tracing_actix_web::TracingLogger;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{EnvFilter, Registry};
@@ -18,7 +18,7 @@ use bookservice_admin_api::books_repository::{
 
 // Based on https://github.com/LukeMathWalker/tracing-actix-web/blob/main/examples/opentelemetry/src/main.rs#L15
 fn init_telemetry() {
-    let app_name = "bookservice_repository_api";
+    let app_name = "bookservice_repository";
 
     // Start a new Jaeger trace pipeline.
     // Spans are exported in batch - recommended setup for a production application.
@@ -74,9 +74,12 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .app_data(Data::new(books_repository.clone()))
+            .wrap_api()
+            .app_data(web::Data::new(books_repository.clone()))
             .wrap(TracingLogger::default())
             .configure(config_app)
+            .with_json_spec_at("/apispec/v2")
+            .build()
     })
     .bind(("0.0.0.0", 8080))?
     .run()

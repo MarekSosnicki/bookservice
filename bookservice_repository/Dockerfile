@@ -5,7 +5,7 @@
 FROM rust:1-slim-bookworm AS builder
 WORKDIR /code/service
 COPY . .
-RUN cargo build --bin bookservice_repository_api --release
+RUN cargo build --bin bookservice_repository --release
 
 ###############
 ## run stage ##

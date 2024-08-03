@@ -4,7 +4,7 @@ services:
       - 1234:8080
     build:
       context: ./
-      dockerfile: bookservice_repository_api/Dockerfile
+      dockerfile: bookservice_repository/Dockerfile
     environment:
       - OTEL_EXPORTER_JAEGER_AGENT_HOST=jaeger
       - DB_USERNAME=postgres
@@ -45,7 +45,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - db:/var/lib/postgresql/data
 volumes:

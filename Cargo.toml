@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "bookservice_repository_api",
+    "bookservice_repository",
     "bookservice_user_api",
     "bookservice_recommendations",
     "bookservice_tests",

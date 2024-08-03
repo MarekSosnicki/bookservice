@@ -1,4 +1,4 @@
-use actix_web::web;
+use paperclip::actix::web;
 
 use crate::handlers;
 
