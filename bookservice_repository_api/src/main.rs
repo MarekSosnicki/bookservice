@@ -18,7 +18,7 @@ use bookservice_admin_api::books_repository::{
 
 // Based on https://github.com/LukeMathWalker/tracing-actix-web/blob/main/examples/opentelemetry/src/main.rs#L15
 fn init_telemetry() {
-    let app_name = "bookservice_admin_api";
+    let app_name = "bookservice_repository_api";
 
     // Start a new Jaeger trace pipeline.
     // Spans are exported in batch - recommended setup for a production application.
