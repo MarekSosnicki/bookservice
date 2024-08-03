@@ -71,10 +71,7 @@ impl BookRepository for InMemoryBookRepository {
 #[cfg(test)]
 mod in_memory_book_repository_tests {
     use crate::api::{BookDetails, BookDetailsPatch, BookTitleAndId};
-    use crate::books_repository::{
-        BookRepository, BookRepositoryError, InMemoryBookRepository
-        ,
-    };
+    use crate::books_repository::{BookRepository, BookRepositoryError, InMemoryBookRepository};
 
     #[tokio::test]
     /// Tests if add_book and get_book work correctly
@@ -147,7 +144,9 @@ mod in_memory_book_repository_tests {
             .await
             .expect("Failed to add book");
 
-        let list = repo.list_books().await.expect("Failed to list books");
+        let mut list = repo.list_books().await.expect("Failed to list books");
+
+        list.sort_by_key(|i| i.book_id);
 
         assert_eq!(
             list,
