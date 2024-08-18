@@ -18,12 +18,14 @@ impl ResponseError for ReservationsRepositoryError {
             ReservationsRepositoryError::UserNotFound(book_id) => {
                 HttpResponse::NotFound().body(format!("Book not found {}", book_id))
             }
-            ReservationsRepositoryError::BookNotReserved(book_id) => {
+            ReservationsRepositoryError::BookAlreadyReserved(book_id) => {
                 HttpResponse::Forbidden().body(format!("Book already reserved {}", book_id))
             }
-            ReservationsRepositoryError::BookReservedByDifferentUser(book_id) => {
-                HttpResponse::Forbidden()
-                    .body(format!("Book is reserved {} by different user", book_id))
+            ReservationsRepositoryError::BookNotReservedOrReservedByDifferentUser(book_id) => {
+                HttpResponse::Forbidden().body(format!(
+                    "Book not reserved or reserved {} by different user",
+                    book_id
+                ))
             }
             _ => HttpResponse::InternalServerError().body(self.to_string()),
         }

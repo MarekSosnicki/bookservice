@@ -11,13 +11,7 @@ pub struct UserDetails {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Apiv2Schema)]
-pub struct UsernameAndId {
-    pub username: String,
-    pub user_id: UserId,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Apiv2Schema)]
 pub struct ReservationHistoryRecord {
     pub book_id: BookId,
-    pub unreserved_at: u64,
+    pub unreserved_at: i64,
 }

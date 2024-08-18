@@ -82,17 +82,21 @@ impl ReservationsRepository for InMemoryReservationsRepository {
                             unreserved_at: std::time::SystemTime::now()
                                 .duration_since(UNIX_EPOCH)
                                 .unwrap()
-                                .as_secs(),
+                                .as_secs() as i64,
                         },
                     );
                     Ok(())
                 } else {
-                    Err(ReservationsRepositoryError::BookReservedByDifferentUser(
-                        book_id,
-                    ))
+                    Err(
+                        ReservationsRepositoryError::BookNotReservedOrReservedByDifferentUser(
+                            book_id,
+                        ),
+                    )
                 }
             }
-            Entry::Vacant(_) => Err(ReservationsRepositoryError::BookNotReserved(book_id)),
+            Entry::Vacant(_) => {
+                Err(ReservationsRepositoryError::BookNotReservedOrReservedByDifferentUser(book_id))
+            }
         }
     }
 
@@ -171,7 +175,7 @@ mod tests_in_memory_reservations_repository {
         let get_unknown_user_result = repository.get_user(unknown_user_id).await;
         assert!(matches!(
             get_unknown_user_result,
-            Err(ReservationsRepositoryError::UserNotFound(unknown_user_id))
+            Err(ReservationsRepositoryError::UserNotFound(..))
         ));
     }
 
@@ -248,7 +252,7 @@ mod tests_in_memory_reservations_repository {
 
         assert!(matches!(
             unreserve_invalid_user,
-            Err(ReservationsRepositoryError::BookReservedByDifferentUser(..))
+            Err(ReservationsRepositoryError::BookNotReservedOrReservedByDifferentUser(..))
         ));
 
         // unreserve book for right user
