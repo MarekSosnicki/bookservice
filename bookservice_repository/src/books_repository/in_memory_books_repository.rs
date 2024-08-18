@@ -7,19 +7,10 @@ use crate::api;
 use crate::api::{BookDetails, BookId, BookTitleAndId};
 use crate::books_repository::{BookRepository, BookRepositoryError};
 
+#[derive(Default)]
 pub struct InMemoryBookRepository {
     book_sequence_generator: AtomicI32,
     books: parking_lot::RwLock<HashMap<BookId, BookDetails>>,
-}
-
-impl Default for InMemoryBookRepository {
-    fn default() -> Self {
-        let result = Self {
-            book_sequence_generator: Default::default(),
-            books: Default::default(),
-        };
-        result
-    }
 }
 
 #[async_trait::async_trait]

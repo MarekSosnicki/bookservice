@@ -8,6 +8,7 @@ use crate::reservations_repository::{
     BookId, ReservationsRepository, ReservationsRepositoryError, UserDetails, UserId,
 };
 
+#[derive(Default)]
 pub struct InMemoryReservationsRepository {
     users: parking_lot::RwLock<HashMap<UserId, UserDetails>>,
     reservations: parking_lot::RwLock<HashMap<BookId, UserId>>,
@@ -15,16 +16,6 @@ pub struct InMemoryReservationsRepository {
     user_sequence_generator: AtomicI32,
 }
 
-impl Default for InMemoryReservationsRepository {
-    fn default() -> Self {
-        Self {
-            users: Default::default(),
-            reservations: Default::default(),
-            history: Default::default(),
-            user_sequence_generator: Default::default(),
-        }
-    }
-}
 #[async_trait::async_trait]
 impl ReservationsRepository for InMemoryReservationsRepository {
     async fn add_user(

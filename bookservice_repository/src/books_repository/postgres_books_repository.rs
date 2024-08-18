@@ -77,7 +77,7 @@ impl BookRepository for PostgresBooksRepository {
             .await?;
 
         let rows = self.client.query(&stmt, &[&json!(patch), &book_id]).await?;
-        Ok(rows.len() > 0)
+        Ok(!rows.is_empty())
     }
 
     async fn get_book(&self, book_id: BookId) -> Result<BookDetails, BookRepositoryError> {

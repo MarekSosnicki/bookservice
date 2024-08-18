@@ -161,7 +161,7 @@ impl ReservationsRepository for PostgresReservationsRepository {
         let stmt: Statement = self
             .client
             .prepare(
-                "DELETE FROM reservations WHERE user_id = $1 AND book_id = $2 RETURNING book_id",
+                "DELETE FROM reservations WHERE book_id = $1 AND user_id = $2 RETURNING book_id",
             )
             .await?;
 
@@ -359,7 +359,7 @@ mod tests_postgres_reservations_repository {
             Vec::<ReservationHistoryRecord>::default()
         );
 
-        let test_book_id: BookId = 1;
+        let test_book_id: BookId = 123;
 
         // reserve book for the user
         repository
@@ -419,7 +419,7 @@ mod tests_postgres_reservations_repository {
             .unwrap();
 
         // Reserve other book
-        let other_book_id: BookId = 10;
+        let other_book_id: BookId = 5553;
         repository
             .reserve_book(user_1_id, other_book_id)
             .await

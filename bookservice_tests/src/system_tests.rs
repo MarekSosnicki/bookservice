@@ -261,7 +261,7 @@ fn bookservice_reservations_e2e_test() {
         ))
         .send()
         .expect("Failed to reserve book");
-    assert!(reserve_response.status().is_server_error());
+    assert!(reserve_response.status().is_client_error());
 
     // GET ALL RESERVATIONS
     let get_all_reservations_response = client
@@ -279,7 +279,6 @@ fn bookservice_reservations_e2e_test() {
     assert_eq!(reservation_ids, vec![book_id]);
 
     // UNRESERVE
-
     let unreserve_response = client
         .delete(format!(
             "{}{}/reservation/{}",
