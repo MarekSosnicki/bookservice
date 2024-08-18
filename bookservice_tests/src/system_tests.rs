@@ -325,4 +325,5 @@ fn bookservice_reservations_e2e_test() {
         .expect("Failed to parse reservation history");
     assert_eq!(history_records.len(), 1);
     assert_eq!(history_records[0].book_id, book_id);
+    assert!(history_records[0].unreserved_at > 0);
 }

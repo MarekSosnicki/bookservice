@@ -136,6 +136,9 @@ impl ReservationsRepository for PostgresReservationsRepository {
         let rows = self.client.query(&stmt, &[&book_id, &user_id]).await;
 
         match rows {
+            Ok(rows) if rows.is_empty() => {
+                Err(ReservationsRepositoryError::BookAlreadyReserved(book_id))
+            }
             Ok(_) => Ok(()),
             Err(err)
                 if err
