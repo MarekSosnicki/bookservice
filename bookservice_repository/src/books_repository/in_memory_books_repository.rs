@@ -12,8 +12,8 @@ pub struct InMemoryBookRepository {
     books: parking_lot::RwLock<HashMap<BookId, BookDetails>>,
 }
 
-impl InMemoryBookRepository {
-    pub fn new() -> Self {
+impl Default for InMemoryBookRepository {
+    fn default() -> Self {
         let result = Self {
             book_sequence_generator: Default::default(),
             books: Default::default(),
@@ -77,7 +77,7 @@ mod in_memory_book_repository_tests {
     /// Tests if add_book and get_book work correctly
     /// for the sake of not starting container multiple times it tests everything in one testcase
     async fn test_add_book_and_get_it() {
-        let repo = InMemoryBookRepository::new();
+        let repo = InMemoryBookRepository::default();
 
         let not_existing_book_id = 20000;
         let book_not_found = repo.get_book(not_existing_book_id).await;
@@ -106,7 +106,7 @@ mod in_memory_book_repository_tests {
     /// Tests if list_books works correctly
     /// for the sake of not starting container multiple times it tests everything in one testcase
     async fn test_add_books_and_list_them() {
-        let repo = InMemoryBookRepository::new();
+        let repo = InMemoryBookRepository::default();
 
         let list = repo.list_books().await.expect("Failed to list books");
         assert_eq!(list, vec![]);
@@ -167,7 +167,7 @@ mod in_memory_book_repository_tests {
     /// Tests if add_book and get_book work correctly
     /// for the sake of not starting container multiple times it tests everything in one testcase
     async fn test_add_book_patch_and_get_it() {
-        let repo = InMemoryBookRepository::new();
+        let repo = InMemoryBookRepository::default();
         let not_existing_book = 2000;
         let result = repo
             .update_book(not_existing_book, BookDetailsPatch::default())

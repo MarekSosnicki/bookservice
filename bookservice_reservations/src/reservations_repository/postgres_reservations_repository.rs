@@ -39,6 +39,7 @@ impl PostgresReservationsRepository {
         CREATE TABLE IF NOT EXISTS users (
             id              SERIAL PRIMARY KEY,
             username        VARCHAR
+            params          JSONB
             )
         ",
             )
@@ -49,7 +50,7 @@ impl PostgresReservationsRepository {
             .batch_execute(
                 "
         CREATE TABLE IF NOT EXISTS reservations (
-            book_id              SERIAL PRIMARY KEY,
+            book_id              INTEGER NOT NULL UNIQUE,
             user_id              integer
             )
         ",

@@ -63,7 +63,7 @@ async fn main() -> std::io::Result<()> {
         env::var("BOOKSERVICE_REPOSITORY_URL").unwrap_or("http://localhost:8080".to_string());
 
     let books_repository: Arc<dyn ReservationsRepository> = if use_in_memory_db {
-        Arc::new(InMemoryReservationsRepository::new())
+        Arc::new(InMemoryReservationsRepository::default())
     } else {
         Arc::new(
             PostgresReservationsRepository::init(PostgresReservationsRepositoryConfig {

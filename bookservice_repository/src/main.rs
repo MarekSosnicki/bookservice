@@ -59,7 +59,7 @@ async fn main() -> std::io::Result<()> {
     let pg_password = env::var("DB_PASSWORD").unwrap_or("postgres".to_string());
 
     let books_repository: Arc<dyn BookRepository + Send + Sync> = if use_in_memory_db {
-        Arc::new(InMemoryBookRepository::new())
+        Arc::new(InMemoryBookRepository::default())
     } else {
         Arc::new(
             PostgresBooksRepository::init(PostgresBooksRepositoryConfig {

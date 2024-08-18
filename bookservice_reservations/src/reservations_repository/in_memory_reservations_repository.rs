@@ -15,8 +15,8 @@ pub struct InMemoryReservationsRepository {
     user_sequence_generator: AtomicI32,
 }
 
-impl InMemoryReservationsRepository {
-    pub fn new() -> Self {
+impl Default for InMemoryReservationsRepository {
+    fn default() -> Self {
         Self {
             users: Default::default(),
             reservations: Default::default(),
@@ -119,5 +119,190 @@ impl ReservationsRepository for InMemoryReservationsRepository {
             .get(&user_id)
             .cloned()
             .unwrap_or_default())
+    }
+}
+
+#[cfg(test)]
+mod tests_in_memory_reservations_repository {
+    use super::*;
+
+    #[tokio::test]
+    /// Simple test to cover user management
+    /// Combined into big unit test to avoid duplicate setup
+    /// 1. Gets all users -expects empty
+    /// 2. Creates user
+    /// 3. Gets user
+    /// 4. Gets all users - expects 1
+    /// 5. Creates second user
+    /// 6. Gets all users - expects 2
+    /// 7. Gets user not existing in db to get not found
+    async fn test_user_management() {
+        let repository = InMemoryReservationsRepository::default();
+        assert_eq!(
+            repository.get_all_user_ids().await.unwrap(),
+            Vec::<UserId>::default()
+        );
+
+        let user_details = UserDetails {
+            username: "username".to_string(),
+            favourite_tags: vec!["tag1".to_string(), "tag2".to_string()],
+        };
+
+        let user_id = repository.add_user(user_details.clone()).await.unwrap();
+
+        let user_returned = repository.get_user(user_id).await.unwrap();
+
+        assert_eq!(user_returned, user_details);
+        assert_eq!(repository.get_all_user_ids().await.unwrap(), vec![user_id]);
+
+        let user_2_id = repository
+            .add_user(UserDetails {
+                username: "user2".to_string(),
+                favourite_tags: vec![],
+            })
+            .await
+            .unwrap();
+        let mut all_users = repository.get_all_user_ids().await.unwrap();
+        all_users.sort();
+        assert_eq!(all_users, vec![user_id, user_2_id]);
+
+        let unknown_user_id = user_2_id + 1;
+
+        let get_unknown_user_result = repository.get_user(unknown_user_id).await;
+        assert!(matches!(
+            get_unknown_user_result,
+            Err(ReservationsRepositoryError::UserNotFound(unknown_user_id))
+        ));
+    }
+
+    #[tokio::test]
+    /// Simple test to cover reservation management
+    /// Combined into big unit test to avoid duplicate setup
+    /// 1.Creates two users, validates reservations and history is empty
+    /// 2.Reserves book
+    /// 3.Lists all reservations for user
+    /// 4.Creates second user
+    /// 5.Tries to reserve the same book - get rejected
+    /// 6.Releases reservation for the first user
+    /// 7.Lists reservations
+    async fn test_reservation_management() {
+        let repository = InMemoryReservationsRepository::default();
+
+        let user_1_id = repository
+            .add_user(UserDetails {
+                username: "user1".to_string(),
+                favourite_tags: vec![],
+            })
+            .await
+            .unwrap();
+        let user_2_id = repository
+            .add_user(UserDetails {
+                username: "user1".to_string(),
+                favourite_tags: vec![],
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(
+            repository.get_all_reservations(user_1_id).await.unwrap(),
+            Vec::<BookId>::default()
+        );
+
+        assert_eq!(
+            repository
+                .get_reservations_history(user_1_id)
+                .await
+                .unwrap(),
+            Vec::<ReservationHistoryRecord>::default()
+        );
+
+        let test_book_id: BookId = 1;
+
+        // reserve book for the user
+        repository
+            .reserve_book(user_1_id, test_book_id)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            repository.get_all_reservations(user_1_id).await.unwrap(),
+            vec![test_book_id]
+        );
+        assert_eq!(
+            repository
+                .get_reservations_history(user_1_id)
+                .await
+                .unwrap(),
+            Vec::<ReservationHistoryRecord>::default()
+        );
+
+        let reserve_conflict = repository.reserve_book(user_2_id, test_book_id).await;
+
+        assert!(matches!(
+            reserve_conflict,
+            Err(ReservationsRepositoryError::BookAlreadyReserved(..))
+        ));
+
+        // unreserve book for wrong user
+        let unreserve_invalid_user = repository.unreserve_book(user_2_id, test_book_id).await;
+
+        assert!(matches!(
+            unreserve_invalid_user,
+            Err(ReservationsRepositoryError::BookReservedByDifferentUser(..))
+        ));
+
+        // unreserve book for right user
+        repository
+            .unreserve_book(user_1_id, test_book_id)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            repository.get_all_reservations(user_1_id).await.unwrap(),
+            Vec::<BookId>::default()
+        );
+
+        let history = repository
+            .get_reservations_history(user_1_id)
+            .await
+            .unwrap();
+        assert_eq!(history.len(), 1);
+        assert_eq!(history[0].book_id, test_book_id);
+
+        // reserve again to check if properly release
+        repository
+            .reserve_book(user_1_id, test_book_id)
+            .await
+            .unwrap();
+
+        // Reserve other book
+        let other_book_id: BookId = 10;
+        repository
+            .reserve_book(user_1_id, other_book_id)
+            .await
+            .unwrap();
+
+        let mut two_reservations = repository.get_all_reservations(user_1_id).await.unwrap();
+        two_reservations.sort();
+        assert_eq!(two_reservations, vec![test_book_id, other_book_id]);
+
+        // Unreserve to see if can have the same book twice separately
+        repository
+            .unreserve_book(user_1_id, test_book_id)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            repository.get_all_reservations(user_1_id).await.unwrap(),
+            vec![other_book_id]
+        );
+
+        let history = repository
+            .get_reservations_history(user_1_id)
+            .await
+            .unwrap();
+        assert_eq!(history.len(), 2);
+        assert_eq!(history[0].book_id, test_book_id);
+        assert_eq!(history[1].book_id, test_book_id);
     }
 }
