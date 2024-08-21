@@ -53,7 +53,6 @@ cargo test --features system_tests
     - add metrics
     - add client for API
 - bookservice_reservations
-    - add postgres
     - add metrics
     - add unit tests
     - add client for API

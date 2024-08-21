@@ -3,56 +3,50 @@ use std::time::UNIX_EPOCH;
 use serde::Deserialize;
 use serde_json::json;
 
-#[test]
+use bookservice_repository::api::BookDetails;
+use bookservice_repository::client::BookServiceRepositoryClient;
+
+#[tokio::test]
 /// Simple test for bookservice repository
 /// Creates a book
 /// Get the book
 /// Patches the book
 /// Gets list of books and checks if the book is there
-fn bookservice_repository_e2e_test() {
+async fn bookservice_repository_e2e_test() {
     let bookservice_repository_url = "http://127.0.0.1:8001";
 
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::Client::new();
+    let bookservice_repository_client =
+        BookServiceRepositoryClient::new(bookservice_repository_url)
+            .expect("Failed to create client");
 
-    let book_details = json!(
-        {
-          "title": "title1",
-          "authors": [
-            "Author1"
-          ],
-          "publisher": "Publisher1",
-          "description": "Description1",
-          "tags": [
-            "TAG1", "TAG2"
-          ]
-        }
-    );
+    let book_details = BookDetails {
+        title: "title1".to_string(),
+        authors: vec!["Author1".to_string()],
+        publisher: "Publisher1".to_string(),
+        description: "Description1".to_string(),
+        tags: vec!["TAG1".to_string(), "TAG2".to_string()],
+    };
 
-    let add_response = client
-        .post(format!("{}/api/book", bookservice_repository_url))
-        .json(&book_details)
-        .send()
-        .expect("Failed to post book");
-
-    assert!(add_response.status().is_success());
-
-    let location = add_response
-        .headers()
-        .get(reqwest::header::LOCATION)
-        .expect("Missing location header")
-        .to_str()
-        .expect("Failed to transform header value to string");
-
-    assert!(location.starts_with("/api/book/"));
+    let book_id = bookservice_repository_client
+        .add_book(book_details.clone())
+        .await
+        .expect("Failed to add book");
 
     let get_response = client
-        .get(format!("{}{}", bookservice_repository_url, location))
+        .get(format!(
+            "{}/api/book/{}",
+            bookservice_repository_url, book_id
+        ))
         .send()
+        .await
         .expect("Failed to get book");
     assert!(get_response.status().is_success());
 
-    let returned_book_details: serde_json::Value =
-        get_response.json().expect("Failed to parse response json");
+    let returned_book_details: BookDetails = get_response
+        .json()
+        .await
+        .expect("Failed to parse response json");
 
     assert_eq!(returned_book_details, book_details);
 
@@ -71,22 +65,32 @@ fn bookservice_repository_e2e_test() {
     );
 
     let patch_response = client
-        .patch(format!("{}{}", bookservice_repository_url, location))
+        .patch(format!(
+            "{}/api/book/{}",
+            bookservice_repository_url, book_id
+        ))
         .json(&book_patch)
         .send()
+        .await
         .expect("Failed to patch book");
     assert!(patch_response.status().is_success());
 
     let get_response = client
-        .get(format!("{}{}", bookservice_repository_url, location))
+        .get(format!(
+            "{}/api/book/{}",
+            bookservice_repository_url, book_id
+        ))
         .send()
+        .await
         .expect("Failed to get book");
     assert!(get_response.status().is_success());
 
-    let returned_book_details: serde_json::Value =
-        get_response.json().expect("Failed to parse response json");
+    let returned_book_details: serde_json::Value = get_response
+        .json()
+        .await
+        .expect("Failed to parse response json");
 
-    let mut patched_book_details = book_details;
+    let mut patched_book_details = json!(book_details);
 
     patched_book_details
         .as_object_mut()
@@ -98,6 +102,7 @@ fn bookservice_repository_e2e_test() {
     let get_all_response = client
         .get(format!("{}/api/books", bookservice_repository_url))
         .send()
+        .await
         .expect("Failed to get list of book");
     assert!(get_all_response.status().is_success());
 
@@ -107,15 +112,10 @@ fn bookservice_repository_e2e_test() {
         title: String,
     }
 
-    let get_all_response_body: Vec<BookIdAndTitle> =
-        get_all_response.json().expect("Failed to parse response");
-
-    let book_id: i32 = location
-        .split("/")
-        .last()
-        .expect("Failed to get id")
-        .parse()
-        .expect("failed to parse book id");
+    let get_all_response_body: Vec<BookIdAndTitle> = get_all_response
+        .json()
+        .await
+        .expect("Failed to parse response");
 
     assert!(get_all_response_body
         .iter()

@@ -7,6 +7,8 @@ edition = "2021"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
+bookservice_repository = { path = "../bookservice_repository", features = ["client"] }
+tokio = "1.39.2"
 
 [features]
 system_tests = []

@@ -449,6 +449,10 @@ dependencies = [
  "opentelemetry_sdk 0.23.0",
  "paperclip",
  "parking_lot 0.12.3",
+ "reqwest",
+ "reqwest-middleware",
+ "reqwest-retry",
+ "reqwest-tracing",
  "serde",
  "serde_json",
  "serial_test",
@@ -499,9 +503,11 @@ dependencies = [
 name = "bookservice_tests"
 version = "0.1.0"
 dependencies = [
+ "bookservice_repository",
  "reqwest",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]
