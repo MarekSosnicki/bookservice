@@ -3,7 +3,7 @@ use std::time::UNIX_EPOCH;
 use serde::Deserialize;
 use serde_json::json;
 
-use bookservice_repository::api::BookDetails;
+use bookservice_repository::api::{BookDetails, BookDetailsPatch};
 use bookservice_repository::client::BookServiceRepositoryClient;
 
 #[tokio::test]
@@ -14,8 +14,6 @@ use bookservice_repository::client::BookServiceRepositoryClient;
 /// Gets list of books and checks if the book is there
 async fn bookservice_repository_e2e_test() {
     let bookservice_repository_url = "http://127.0.0.1:8001";
-
-    let client = reqwest::Client::new();
     let bookservice_repository_client =
         BookServiceRepositoryClient::new(bookservice_repository_url)
             .expect("Failed to create client");
@@ -33,20 +31,11 @@ async fn bookservice_repository_e2e_test() {
         .await
         .expect("Failed to add book");
 
-    let get_response = client
-        .get(format!(
-            "{}/api/book/{}",
-            bookservice_repository_url, book_id
-        ))
-        .send()
+    let returned_book_details = bookservice_repository_client
+        .get_book(book_id)
         .await
-        .expect("Failed to get book");
-    assert!(get_response.status().is_success());
-
-    let returned_book_details: BookDetails = get_response
-        .json()
-        .await
-        .expect("Failed to parse response json");
+        .expect("Failed to get book")
+        .expect("Book not found");
 
     assert_eq!(returned_book_details, book_details);
 
@@ -58,66 +47,34 @@ async fn bookservice_repository_e2e_test() {
             .as_secs()
     );
 
-    let book_patch = json!(
-        {
-          "title": updated_title,
-        }
-    );
+    let book_patch = BookDetailsPatch {
+        title: Some(updated_title.clone()),
+        ..BookDetailsPatch::default()
+    };
 
-    let patch_response = client
-        .patch(format!(
-            "{}/api/book/{}",
-            bookservice_repository_url, book_id
-        ))
-        .json(&book_patch)
-        .send()
+    bookservice_repository_client
+        .update_book(book_id, book_patch)
         .await
         .expect("Failed to patch book");
-    assert!(patch_response.status().is_success());
 
-    let get_response = client
-        .get(format!(
-            "{}/api/book/{}",
-            bookservice_repository_url, book_id
-        ))
-        .send()
+    let returned_book_details = bookservice_repository_client
+        .get_book(book_id)
         .await
-        .expect("Failed to get book");
-    assert!(get_response.status().is_success());
+        .expect("Failed to get book")
+        .expect("Book not found");
 
-    let returned_book_details: serde_json::Value = get_response
-        .json()
-        .await
-        .expect("Failed to parse response json");
-
-    let mut patched_book_details = json!(book_details);
-
-    patched_book_details
-        .as_object_mut()
-        .unwrap()
-        .insert("title".to_string(), json!(updated_title));
-
+    let patched_book_details = BookDetails {
+        title: updated_title.clone(),
+        ..book_details
+    };
     assert_eq!(returned_book_details, patched_book_details);
 
-    let get_all_response = client
-        .get(format!("{}/api/books", bookservice_repository_url))
-        .send()
+    let books_and_titles = bookservice_repository_client
+        .list_books()
         .await
-        .expect("Failed to get list of book");
-    assert!(get_all_response.status().is_success());
+        .expect("Failed to list books");
 
-    #[derive(Deserialize)]
-    struct BookIdAndTitle {
-        book_id: i32,
-        title: String,
-    }
-
-    let get_all_response_body: Vec<BookIdAndTitle> = get_all_response
-        .json()
-        .await
-        .expect("Failed to parse response");
-
-    assert!(get_all_response_body
+    assert!(books_and_titles
         .iter()
         .any(|id_and_title| id_and_title.book_id == book_id && id_and_title.title == updated_title))
 }
