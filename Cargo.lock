@@ -504,6 +504,7 @@ name = "bookservice_tests"
 version = "0.1.0"
 dependencies = [
  "bookservice_repository",
+ "bookservice_reservations",
  "reqwest",
  "serde",
  "serde_json",

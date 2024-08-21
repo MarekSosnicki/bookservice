@@ -1,25 +1,13 @@
-use std::env;
-use std::sync::Arc;
-
-use actix_web::{App, HttpServer};
-use opentelemetry::global;
-use opentelemetry_sdk::propagation::TraceContextPropagator;
-use opentelemetry_sdk::runtime::TokioCurrentThread;
-use paperclip::actix::{OpenApiExt, web};
-use tracing_actix_web::TracingLogger;
-use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
-use tracing_subscriber::{EnvFilter, Registry};
-use tracing_subscriber::layer::SubscriberExt;
-
-use bookservice_reservations::app_config::config_app;
-use bookservice_reservations::book_existance_checker::BookExistanceChecker;
-use bookservice_reservations::reservations_repository::{
-    InMemoryReservationsRepository, PostgresReservationsRepository,
-    PostgresReservationsRepositoryConfig, ReservationsRepository,
-};
-
 // Based on https://github.com/LukeMathWalker/tracing-actix-web/blob/main/examples/opentelemetry/src/main.rs#L15
+#[cfg(feature = "server")]
 fn init_telemetry() {
+    use opentelemetry::global;
+    use opentelemetry_sdk::propagation::TraceContextPropagator;
+    use opentelemetry_sdk::runtime::TokioCurrentThread;
+    use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::{EnvFilter, Registry};
+
     let app_name = "bookservice_reservations";
 
     // Start a new Jaeger trace pipeline.
@@ -48,8 +36,21 @@ fn init_telemetry() {
         .expect("Failed to install `tracing` subscriber.")
 }
 
+#[cfg(feature = "server")]
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    use actix_web::{App, HttpServer};
+    use bookservice_reservations::app_config::config_app;
+    use bookservice_reservations::book_existance_checker::BookExistanceChecker;
+    use bookservice_reservations::reservations_repository::{
+        InMemoryReservationsRepository, PostgresReservationsRepository,
+        PostgresReservationsRepositoryConfig, ReservationsRepository,
+    };
+    use paperclip::actix::{OpenApiExt, web};
+    use std::env;
+    use std::sync::Arc;
+    use tracing_actix_web::TracingLogger;
+
     init_telemetry();
     println!("starting HTTP server at http://localhost:8080");
 

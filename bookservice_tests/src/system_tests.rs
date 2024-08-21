@@ -1,10 +1,9 @@
 use std::time::UNIX_EPOCH;
 
-use serde::Deserialize;
-use serde_json::json;
-
 use bookservice_repository::api::{BookDetails, BookDetailsPatch};
 use bookservice_repository::client::BookServiceRepositoryClient;
+use bookservice_reservations::api::{BookId, UserDetails};
+use bookservice_reservations::client::BookServiceReservationsClient;
 
 #[tokio::test]
 /// Simple test for bookservice repository
@@ -79,7 +78,7 @@ async fn bookservice_repository_e2e_test() {
         .any(|id_and_title| id_and_title.book_id == book_id && id_and_title.title == updated_title))
 }
 
-#[test]
+#[tokio::test]
 /// Simple test for bookservice reservations
 /// Creates a user
 /// Gets the user
@@ -89,10 +88,15 @@ async fn bookservice_repository_e2e_test() {
 /// Checks current reservations
 /// Unreserves a book
 /// Gets history of reservations
-fn bookservice_reservations_e2e_test() {
+async fn bookservice_reservations_e2e_test() {
     let bookservice_repository_url = "http://127.0.0.1:8001";
     let bookservice_reservations_url = "http://127.0.0.1:8002";
-    let client = reqwest::blocking::Client::new();
+    let bookservice_repository_client =
+        BookServiceRepositoryClient::new(bookservice_repository_url)
+            .expect("Failed to create bookservice_repository_client");
+    let bookservice_reservations_client =
+        BookServiceReservationsClient::new(bookservice_reservations_url)
+            .expect("Failed to create bookservice_reservations_client");
 
     let username = format!(
         "User{}",
@@ -101,184 +105,95 @@ fn bookservice_reservations_e2e_test() {
             .unwrap()
             .as_secs()
     );
-    let user_details = json!(
-        {
-          "username": username,
-          "favourite_tags": [
-            "TAG1", "TAG2"
-          ]
-        }
-    );
+    let user_details = UserDetails {
+        username: username.clone(),
+        favourite_tags: vec!["tag1".to_string()],
+    };
 
     // ADD USER
-    let add_user_response = client
-        .post(format!("{}/api/user", bookservice_reservations_url))
-        .json(&user_details)
-        .send()
+    let user_id = bookservice_reservations_client
+        .add_user(user_details.clone())
+        .await
         .expect("Failed to add user");
 
-    assert!(add_user_response.status().is_success());
-
-    let user_location = add_user_response
-        .headers()
-        .get(reqwest::header::LOCATION)
-        .expect("Missing location header")
-        .to_str()
-        .expect("Failed to transform header value to string");
-
-    assert!(user_location.starts_with("/api/user/"));
-
     // GET USER
+    let returned_user_details = bookservice_reservations_client
+        .get_user(user_id)
+        .await
+        .expect("Failed to get user")
+        .expect("User not found");
 
-    let get_user_response = client
-        .get(format!("{}{}", bookservice_reservations_url, user_location))
-        .send()
-        .expect("Failed to get user");
-    assert!(get_user_response.status().is_success());
-    let returned_user_details: serde_json::Value = get_user_response
-        .json()
-        .expect("Failed to parse response json");
     assert_eq!(returned_user_details, user_details);
 
     // GET ALL USERS
 
-    let get_all_users_response = client
-        .get(format!("{}/api/users", bookservice_reservations_url))
-        .send()
+    let users_list = bookservice_reservations_client
+        .list_users()
+        .await
         .expect("Failed to get list of users");
-    assert!(get_all_users_response.status().is_success());
 
-    let get_all_response_body: Vec<i32> = get_all_users_response
-        .json()
-        .expect("Failed to parse response");
-
-    let user_id: i32 = user_location
-        .split("/")
-        .last()
-        .expect("Failed to get id")
-        .parse()
-        .expect("failed to parse book id");
-
-    assert!(get_all_response_body.iter().any(|id| *id == user_id));
+    assert!(users_list.iter().any(|id| *id == user_id));
 
     // ADD BOOK
 
-    let book_details = json!(
-        {
-          "title": "title1",
-          "authors": [
-            "Author1"
-          ],
-          "publisher": "Publisher1",
-          "description": "Description1",
-          "tags": [
-            "TAG1", "TAG2"
-          ]
-        }
-    );
+    let book_details = BookDetails {
+        title: "title1".to_string(),
+        authors: vec!["Author1".to_string()],
+        publisher: "Publisher1".to_string(),
+        description: "Description1".to_string(),
+        tags: vec!["TAG1".to_string(), "TAG2".to_string()],
+    };
 
-    let add_response = client
-        .post(format!("{}/api/book", bookservice_repository_url))
-        .json(&book_details)
-        .send()
-        .expect("Failed to post book");
-
-    assert!(add_response.status().is_success());
-
-    let book_location = add_response
-        .headers()
-        .get(reqwest::header::LOCATION)
-        .expect("Missing location header")
-        .to_str()
-        .expect("Failed to transform header value to string");
-
-    let book_id: i32 = book_location
-        .split("/")
-        .last()
-        .expect("Failed to get id")
-        .parse()
-        .expect("failed to parse book id");
+    let book_id = bookservice_repository_client
+        .add_book(book_details.clone())
+        .await
+        .expect("Failed to add book");
 
     // RESERVE Book
-    let reserve_response = client
-        .post(format!(
-            "{}{}/reservation/{}",
-            bookservice_reservations_url, user_location, book_id
-        ))
-        .send()
+    let reserve_response = bookservice_reservations_client
+        .reserve_book(book_id, user_id)
+        .await
         .expect("Failed to reserve book");
-    assert!(reserve_response.status().is_success());
+
+    assert!(reserve_response);
 
     // RESERVE AGAIN - this time should fail as already reserved
     // TODO: Add second user for this?
-    let reserve_response = client
-        .post(format!(
-            "{}{}/reservation/{}",
-            bookservice_reservations_url, user_location, book_id
-        ))
-        .send()
+    let reserve_response = bookservice_reservations_client
+        .reserve_book(book_id, user_id)
+        .await
         .expect("Failed to reserve book");
-    assert!(reserve_response.status().is_client_error());
+    assert!(!reserve_response);
 
     // GET ALL RESERVATIONS
-    let get_all_reservations_response = client
-        .get(format!(
-            "{}{}/reservations",
-            bookservice_reservations_url, user_location
-        ))
-        .send()
+    let reservation_ids = bookservice_reservations_client
+        .list_reservations(user_id)
+        .await
         .expect("Failed to get all reservations");
-    assert!(get_all_reservations_response.status().is_success());
 
-    let reservation_ids: Vec<i32> = get_all_reservations_response
-        .json()
-        .expect("Failed to parse reservation ids");
     assert_eq!(reservation_ids, vec![book_id]);
 
     // UNRESERVE
-    let unreserve_response = client
-        .delete(format!(
-            "{}{}/reservation/{}",
-            bookservice_reservations_url, user_location, book_id
-        ))
-        .send()
+    let unreserve_response = bookservice_reservations_client
+        .unreserve_book(book_id, user_id)
+        .await
         .expect("Failed to unreserve book");
-    assert!(unreserve_response.status().is_success());
+
+    assert!(unreserve_response);
 
     // GET ALL RESERVATIONS to see if it is removed
-    let get_all_reservations_response = client
-        .get(format!(
-            "{}{}/reservations",
-            bookservice_reservations_url, user_location
-        ))
-        .send()
+    let reservation_ids = bookservice_reservations_client
+        .list_reservations(user_id)
+        .await
         .expect("Failed to get all reservations");
-    assert!(get_all_reservations_response.status().is_success());
-
-    let reservation_ids: Vec<i32> = get_all_reservations_response
-        .json()
-        .expect("Failed to parse reservation ids");
-    assert_eq!(reservation_ids, Vec::<i32>::default());
+    assert_eq!(reservation_ids, Vec::<BookId>::default());
 
     // GET History response
-    let get_reservation_history = client
-        .get(format!(
-            "{}{}/history",
-            bookservice_reservations_url, user_location
-        ))
-        .send()
+    let history_records = bookservice_reservations_client
+        .history(user_id)
+        .await
         .expect("Failed to get all reservations");
-    assert!(get_reservation_history.status().is_success());
 
-    #[derive(Deserialize)]
-    struct HistoryRecord {
-        book_id: i32,
-        unreserved_at: u64,
-    }
-
-    let history_records: Vec<HistoryRecord> = get_reservation_history
-        .json()
-        .expect("Failed to parse reservation history");
     assert_eq!(history_records.len(), 1);
     assert_eq!(history_records[0].book_id, book_id);
     assert!(history_records[0].unreserved_at > 0);
