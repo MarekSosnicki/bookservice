@@ -123,7 +123,7 @@ impl BookRepository for PostgresBooksRepository {
 
 #[cfg(test)]
 mod postgres_book_repository_tests {
-    use serial_test::serial;
+    use serial_test::file_serial;
     use testcontainers::{ContainerAsync, GenericImage, ImageExt};
     use testcontainers::core::IntoContainerPort;
     use testcontainers::runners::AsyncRunner;
@@ -161,7 +161,7 @@ mod postgres_book_repository_tests {
     }
 
     #[tokio::test]
-    #[serial]
+    #[file_serial(key, path => "../.pgtestslock")]
     /// Tests if add_book and get_book work correctly
     /// for the sake of not starting container multiple times it tests everything in one testcase
     async fn test_add_book_and_get_it() {
@@ -191,7 +191,7 @@ mod postgres_book_repository_tests {
     }
 
     #[tokio::test]
-    #[serial]
+    #[file_serial(key, path => "../.pgtestslock")]
     /// Tests if list_books works correctly
     /// for the sake of not starting container multiple times it tests everything in one testcase
     async fn test_add_books_and_list_them() {
@@ -251,7 +251,7 @@ mod postgres_book_repository_tests {
     }
 
     #[tokio::test]
-    #[serial]
+    #[file_serial(key, path => "../.pgtestslock")]
     /// Tests if add_book and get_book work correctly
     /// for the sake of not starting container multiple times it tests everything in one testcase
     async fn test_add_book_patch_and_get_it() {

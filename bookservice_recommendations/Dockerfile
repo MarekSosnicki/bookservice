@@ -2,28 +2,26 @@
 #################
 ## build stage ##
 #################
-FROM rust:slim as builder
+FROM rust:1-slim-bookworm AS builder
 RUN apt-get update && apt-get install -y \
     build-essential checkinstall zlib1g-dev pkg-config libssl-dev -y
 WORKDIR /code/service
 COPY . .
-RUN cargo build --bin bookservice_reservations --release --features server
+RUN cargo build --bin bookservice_recommendations --release --features server
 
 ###############
 ## run stage ##
 ###############
 FROM bitnami/minideb:bookworm
-# This may fix open ssl issue
 RUN apt-get update && apt-get install -y \
     build-essential checkinstall zlib1g-dev pkg-config libssl-dev -y
-
 WORKDIR /app
 
 # copy server binary from build stage
-COPY --from=builder /code/service/target/release/bookservice_reservations bookservice_reservations
+COPY --from=builder /code/service/target/release/bookservice_recommendations bookservice_recommendations
 
 USER 1001
 EXPOSE 8080
 
 # run server
-CMD [ "/app/bookservice_reservations" ]
+CMD [ "/app/bookservice_recommendations" ]

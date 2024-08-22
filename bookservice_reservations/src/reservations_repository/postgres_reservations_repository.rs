@@ -234,7 +234,7 @@ impl ReservationsRepository for PostgresReservationsRepository {
 
 #[cfg(test)]
 mod tests_postgres_reservations_repository {
-    use serial_test::serial;
+    use serial_test::file_serial;
     use testcontainers::{ContainerAsync, GenericImage, ImageExt};
     use testcontainers::core::IntoContainerPort;
     use testcontainers::runners::AsyncRunner;
@@ -268,7 +268,7 @@ mod tests_postgres_reservations_repository {
     }
 
     #[tokio::test]
-    #[serial]
+    #[file_serial(key, path => "../.pgtestslock")]
     /// Simple test to cover user management
     /// Combined into big unit test to avoid duplicate setup
     /// 1. Gets all users -expects empty
@@ -318,7 +318,7 @@ mod tests_postgres_reservations_repository {
     }
 
     #[tokio::test]
-    #[serial]
+    #[file_serial(key, path => "../.pgtestslock")]
     /// Simple test to cover reservation management
     /// Combined into big unit test to avoid duplicate setup
     /// 1.Creates two users, validates reservations and history is empty

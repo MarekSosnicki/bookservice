@@ -1,1 +1,4 @@
 .idea
+
+# File used for locking postgres test to avoid parallel setup
+.pgtestslock

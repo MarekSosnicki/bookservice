@@ -33,7 +33,7 @@ reqwest-tracing = { version = "0.5", features = ["opentelemetry_0_22"], optional
 
 [dev-dependencies]
 testcontainers = { version = "0.21", features = ["blocking"] }
-serial_test = "3"
+serial_test = { version = "3", features = ["file_locks"] }
 parking_lot = { version = "0.12.3" }
 paperclip = { version = "0.8", features = ["actix4"] }
 actix-web = { version = "4" }

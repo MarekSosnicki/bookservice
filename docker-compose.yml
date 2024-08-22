@@ -38,6 +38,27 @@ services:
       - bookservice_reservations_db
     restart: always
 
+  bookservice_recommendations_api:
+    ports:
+      - 8003:8080
+    build:
+      context: ./
+      dockerfile: bookservice_recommendations/Dockerfile
+    environment:
+      - OTEL_EXPORTER_JAEGER_AGENT_HOST=jaeger
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=bookservice_reservations_db
+      - BOOKSERVICE_REPOSITORY_URL=http://bookservice_repository_api:8080
+      - BOOKSERVICE_RESERVATIONS_URL=http://bookservice_reservations_api:8080
+    links:
+      - jaeger
+      - bookservice_repository_api
+      - bookservice_reservations_api
+    depends_on:
+      - bookservice_repository_api
+      - bookservice_reservations_api
+    restart: always
 
   jaeger:
     image: jaegertracing/all-in-one:latest
