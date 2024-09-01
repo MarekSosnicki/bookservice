@@ -9,8 +9,9 @@ serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 bookservice_repository = { path = "../bookservice_repository", features = ["client"] }
 bookservice_reservations = { path = "../bookservice_reservations", features = ["client"] }
-
+rand = "0.8"
 tokio = "1"
+
 
 [features]
 system_tests = []

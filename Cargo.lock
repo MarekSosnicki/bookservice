@@ -535,6 +535,7 @@ version = "0.1.0"
 dependencies = [
  "bookservice_repository",
  "bookservice_reservations",
+ "rand",
  "reqwest",
  "serde",
  "serde_json",
