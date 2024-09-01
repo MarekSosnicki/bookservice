@@ -7,3 +7,5 @@ pub mod api;
 pub mod app_config;
 #[cfg(any(feature = "server", test))]
 mod handlers;
+#[cfg(any(feature = "server", test))]
+pub mod recommendations;

@@ -40,17 +40,22 @@ fn init_telemetry() {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     use actix_web::{App, HttpServer};
-    use bookservice_repository::app_config::config_app;
+    use bookservice_recommendations::app_config::config_app;
+    use bookservice_recommendations::recommendations::RecommendationsEngine;
     use paperclip::actix::OpenApiExt;
     use tracing_actix_web::TracingLogger;
 
     init_telemetry();
     println!("starting HTTP server at http://localhost:8080");
 
+    let recommendations_engine =
+        RecommendationsEngine::new(Default::default(), Default::default(), Default::default());
+
     HttpServer::new(move || {
         App::new()
             .wrap_api()
             .wrap(TracingLogger::default())
+            .app_data(web::Data::new(recommendations_engine.clone()))
             .configure(config_app)
             .with_json_spec_at("/apispec/v2")
             .build()
