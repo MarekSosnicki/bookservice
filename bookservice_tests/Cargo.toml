@@ -10,7 +10,7 @@ serde = { version = "1", features = ["derive"] }
 bookservice_repository = { path = "../bookservice_repository", features = ["client"] }
 bookservice_reservations = { path = "../bookservice_reservations", features = ["client"] }
 rand = "0.8"
-tokio = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 
 [features]

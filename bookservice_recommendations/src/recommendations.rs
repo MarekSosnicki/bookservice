@@ -7,10 +7,11 @@ use bookservice_reservations::api::{BookId, ReservationHistoryRecord, UserId};
 
 use crate::api::Recommendations;
 
+const NO_OF_RECOMMENDATIONS: usize = 4;
 #[derive(Default)]
 pub struct RecommendationsEngine {
     user_to_recommendations: HashMap<UserId, Recommendations>,
-    no_of_recommendations: usize,
+    default_recommendations: Recommendations,
 }
 
 #[derive(Default)]
@@ -43,7 +44,7 @@ impl CoefficientsStorage {
                 .last_processed_timestamp_per_user
                 .get(user_id)
                 .cloned()
-                .unwrap_or_default();
+                .unwrap_or(-1);
 
             for book_id in history_records
                 .iter()
@@ -115,18 +116,17 @@ impl CoefficientsStorage {
 }
 
 impl RecommendationsEngine {
-    pub fn new(no_of_recommendations: usize) -> Self {
-        Self {
-            user_to_recommendations: Default::default(),
-            no_of_recommendations,
-        }
-    }
     pub fn update_recommendations_for_users(
         &mut self,
         coefficients_storage: &CoefficientsStorage,
         user_to_reservations: &HashMap<UserId, Vec<BookId>>,
         user_to_history: &HashMap<UserId, Vec<ReservationHistoryRecord>>,
     ) -> anyhow::Result<()> {
+        println!(
+            "Updating recommendations for {} users",
+            user_to_reservations.len()
+        );
+
         // Generate recommendations for each user
         user_to_reservations
             .iter()
@@ -167,7 +167,7 @@ impl RecommendationsEngine {
                                     .next()
                             })
                     })
-                    .take(self.no_of_recommendations)
+                    .take(NO_OF_RECOMMENDATIONS)
                     .cloned()
                     .collect();
 
@@ -198,24 +198,42 @@ impl RecommendationsEngine {
                             .get(author)
                             .and_then(|author_books| author_books.first().cloned())
                     })
-                    .take(self.no_of_recommendations)
+                    .take(NO_OF_RECOMMENDATIONS)
                     .collect();
 
-                self.user_to_recommendations.insert(
-                    *user_id,
-                    Recommendations {
-                        most_popular: coefficients_storage
-                            .books_sorted_by_popularity
-                            .iter()
-                            .filter(|book_id| !all_books_reserved_by_user.contains(book_id))
-                            .take(self.no_of_recommendations)
-                            .cloned()
-                            .collect(),
-                        author_match,
-                        new_author_match,
-                    },
+                let recommendations = Recommendations {
+                    most_popular: coefficients_storage
+                        .books_sorted_by_popularity
+                        .iter()
+                        .filter(|book_id| !all_books_reserved_by_user.contains(book_id))
+                        .take(NO_OF_RECOMMENDATIONS)
+                        .cloned()
+                        .collect(),
+                    author_match,
+                    new_author_match,
+                };
+
+                tracing::info!(
+                    "Adding recommendations for user {} : {:?}",
+                    user_id,
+                    recommendations
                 );
+
+                self.user_to_recommendations
+                    .insert(*user_id, recommendations);
             });
+
+        self.default_recommendations = Recommendations {
+            most_popular: coefficients_storage
+                .books_sorted_by_popularity
+                .iter()
+                .take(NO_OF_RECOMMENDATIONS)
+                .cloned()
+                .collect(),
+            author_match: vec![],
+            new_author_match: vec![],
+        };
+
         Ok(())
     }
 
@@ -223,6 +241,6 @@ impl RecommendationsEngine {
         self.user_to_recommendations
             .get(&user_id)
             .cloned()
-            .unwrap_or_default()
+            .unwrap_or_else(|| self.default_recommendations.clone())
     }
 }

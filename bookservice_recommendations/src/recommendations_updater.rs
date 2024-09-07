@@ -88,6 +88,7 @@ impl RecommendationsUpdater {
         {
             let mut storage = self.coefficients_storage.lock();
             storage.update_storage(&user_id_to_history, &book_id_to_details)?;
+
             self.recommendations_engine
                 .write()
                 .update_recommendations_for_users(
