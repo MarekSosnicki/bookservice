@@ -38,29 +38,41 @@ fn init_telemetry() {
 
 #[cfg(feature = "server")]
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> anyhow::Result<()> {
     use actix_web::{App, HttpServer};
     use bookservice_recommendations::app_config::config_app;
-    use bookservice_recommendations::recommendations::RecommendationsEngine;
+    use bookservice_recommendations::recommendations_updater::RecommendationsUpdater;
+    use paperclip::actix::web;
     use paperclip::actix::OpenApiExt;
+    use std::env;
     use tracing_actix_web::TracingLogger;
 
     init_telemetry();
     println!("starting HTTP server at http://localhost:8080");
 
-    let recommendations_engine =
-        RecommendationsEngine::new(Default::default(), Default::default(), Default::default());
+    let bookservice_repository_url =
+        env::var("BOOKSERVICE_REPOSITORY_URL").unwrap_or("http://localhost:8080".to_string());
+    let bookservice_reservations_url =
+        env::var("BOOKSERVICE_RESERVATIONS_URL").unwrap_or("http://localhost:8081".to_string());
+
+    let recommendations_updater =
+        RecommendationsUpdater::new(&bookservice_repository_url, &bookservice_reservations_url)?;
+
+    let provider = recommendations_updater.provider();
+
+    let _handle = recommendations_updater.start().await?;
 
     HttpServer::new(move || {
         App::new()
             .wrap_api()
             .wrap(TracingLogger::default())
-            .app_data(web::Data::new(recommendations_engine.clone()))
+            .app_data(web::Data::new(provider.clone()))
             .configure(config_app)
             .with_json_spec_at("/apispec/v2")
             .build()
     })
     .bind(("0.0.0.0", 8080))?
     .run()
-    .await
+    .await?;
+    Ok(())
 }

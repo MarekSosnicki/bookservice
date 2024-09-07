@@ -13,6 +13,7 @@ pub struct Recommendations {
     pub author_match: Vec<BookId>,
     /// Up to 4 most popular book of the authors with the highest comparison score and never reserved before by the user
     pub new_author_match: Vec<BookId>,
-    /// Among the books with similar tag matching score, up to 4 will be randomly selected
-    pub wild_tags_matches: Vec<BookId>,
+    // TODO: Add tag match
+    // /// Among the books with similar tag matching score, up to 4 will be randomly selected
+    // pub wild_tags_matches: Vec<BookId>,
 }

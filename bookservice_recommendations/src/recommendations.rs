@@ -7,36 +7,55 @@ use bookservice_reservations::api::{BookId, ReservationHistoryRecord, UserId};
 
 use crate::api::Recommendations;
 
+#[derive(Default)]
 pub struct RecommendationsEngine {
     user_to_recommendations: HashMap<UserId, Recommendations>,
     no_of_recommendations: usize,
 }
 
+#[derive(Default)]
 pub struct CoefficientsStorage {
     books_sorted_by_popularity: Vec<BookId>,
     author_to_books_sorted_by_popularity: HashMap<String, Vec<BookId>>,
+    author_match_score: HashMap<(String, String), i64>,
+    popularity_score: HashMap<BookId, i64>,
+    author_to_books: BTreeMap<String, Vec<BookId>>,
+    book_id_to_authors: HashMap<BookId, Vec<String>>,
+    last_processed_timestamp_per_user: HashMap<UserId, i64>,
 }
 
-impl RecommendationsEngine {
-    pub fn new(
-        user_to_reservations: HashMap<UserId, Vec<BookId>>,
-        user_to_history: HashMap<UserId, Vec<ReservationHistoryRecord>>,
-        book_details: HashMap<BookId, BookDetails>,
-        no_of_recommendations: usize,
-    ) -> Self {
-        let mut popularity_score: HashMap<BookId, i64> = Default::default();
-        let mut author_match_score: HashMap<(String, String), i64> = Default::default();
-        let mut author_to_books: BTreeMap<String, Vec<BookId>> = Default::default();
+impl CoefficientsStorage {
+    pub fn update_storage(
+        &mut self,
+        user_to_history: &HashMap<UserId, Vec<ReservationHistoryRecord>>,
+        book_details: &HashMap<BookId, BookDetails>,
+    ) -> anyhow::Result<()> {
+        for (book_id, details) in book_details.iter() {
+            self.book_id_to_authors
+                .insert(*book_id, details.authors.clone());
+        }
 
-        for history_records in user_to_history.values() {
+        for (user_id, history_records) in user_to_history.iter() {
             // BTreeSet ensures that authors are always in the same order for author_match
             let mut user_history_authors: BTreeSet<String> = Default::default();
-            for book_id in history_records.iter().map(|r| r.book_id).unique() {
-                *popularity_score.entry(book_id).or_default() += 1;
+
+            let last_processed_timestamp_for_user = self
+                .last_processed_timestamp_per_user
+                .get(user_id)
+                .cloned()
+                .unwrap_or_default();
+
+            for book_id in history_records
+                .iter()
+                .filter(|r| r.unreserved_at > last_processed_timestamp_for_user)
+                .map(|r| r.book_id)
+                .unique()
+            {
+                *self.popularity_score.entry(book_id).or_default() += 1;
                 if let Some(details) = book_details.get(&book_id) {
                     for author in details.authors.iter() {
                         user_history_authors.insert(author.clone());
-                        author_to_books
+                        self.author_to_books
                             .entry(author.clone())
                             .or_default()
                             .push(book_id);
@@ -46,39 +65,72 @@ impl RecommendationsEngine {
                 }
             }
             for (author1, author2) in user_history_authors.iter().tuple_combinations() {
-                *author_match_score
+                *self
+                    .author_match_score
                     .entry((author1.clone(), author2.clone()))
                     .or_default() += 1;
             }
+
+            self.last_processed_timestamp_per_user.insert(
+                *user_id,
+                history_records
+                    .iter()
+                    .map(|r| r.unreserved_at)
+                    .max()
+                    .unwrap_or_default(),
+            );
         }
 
         // Sort books per author by popularity
-        let author_to_books_sorted_by_popularity: HashMap<String, Vec<BookId>> = author_to_books
-            .into_iter()
+        self.author_to_books_sorted_by_popularity = self
+            .author_to_books
+            .iter()
             .map(|(author, books)| {
                 (
-                    author,
+                    author.clone(),
                     books
-                        .into_iter()
+                        .iter()
                         .sorted_by_key(|book_id| {
-                            popularity_score.get(book_id).cloned().unwrap_or_default()
+                            self.popularity_score
+                                .get(book_id)
+                                .cloned()
+                                .unwrap_or_default()
                         })
+                        .cloned()
                         .collect(),
                 )
             })
             .collect();
 
         // Sort books by popularity
-        let books_sorted_by_popularity = popularity_score
-            .into_iter()
-            .sorted_by_key(|(_, score)| -score)
-            .map(|(book_id, _)| book_id)
+        self.books_sorted_by_popularity = self
+            .popularity_score
+            .iter()
+            .sorted_by_key(|(_, score)| -**score)
+            .map(|(book_id, _)| *book_id)
             .collect_vec();
 
+        Ok(())
+    }
+}
+
+impl RecommendationsEngine {
+    pub fn new(no_of_recommendations: usize) -> Self {
+        Self {
+            user_to_recommendations: Default::default(),
+            no_of_recommendations,
+        }
+    }
+    pub fn update_recommendations_for_users(
+        &mut self,
+        coefficients_storage: &CoefficientsStorage,
+        user_to_reservations: &HashMap<UserId, Vec<BookId>>,
+        user_to_history: &HashMap<UserId, Vec<ReservationHistoryRecord>>,
+    ) -> anyhow::Result<()> {
         // Generate recommendations for each user
-        let user_to_recommendations = user_to_reservations
+        user_to_reservations
             .iter()
-            .map(|(user_id, reservations)| {
+            .for_each(|(user_id, reservations)| {
                 let all_books_reserved_by_user: HashSet<BookId> = reservations
                     .iter()
                     .cloned()
@@ -93,9 +145,9 @@ impl RecommendationsEngine {
                 let all_user_authors_with_number_of_books_reserved: HashMap<&String, i64> =
                     all_books_reserved_by_user
                         .iter()
-                        .filter_map(|book_id| book_details.get(book_id))
-                        .fold(HashMap::default(), |mut map, details| {
-                            for author in details.authors.iter() {
+                        .filter_map(|book_id| coefficients_storage.book_id_to_authors.get(book_id))
+                        .fold(HashMap::default(), |mut map, authors| {
+                            for author in authors.iter() {
                                 *map.entry(author).or_default() += 1;
                             }
                             map
@@ -105,7 +157,8 @@ impl RecommendationsEngine {
                     .iter()
                     .sorted_by_key(|(_, score)| -**score)
                     .filter_map(|(author, _)| {
-                        author_to_books_sorted_by_popularity
+                        coefficients_storage
+                            .author_to_books_sorted_by_popularity
                             .get(*author)
                             .and_then(|author_books| {
                                 author_books
@@ -114,12 +167,13 @@ impl RecommendationsEngine {
                                     .next()
                             })
                     })
-                    .take(no_of_recommendations)
+                    .take(self.no_of_recommendations)
                     .cloned()
                     .collect();
 
                 // Tak books of 4 authors with best score
-                let new_author_match: Vec<BookId> = author_to_books_sorted_by_popularity
+                let new_author_match: Vec<BookId> = coefficients_storage
+                    .author_to_books_sorted_by_popularity
                     .keys()
                     .filter(|a| !all_user_authors_with_number_of_books_reserved.contains_key(a))
                     .map(|new_author| {
@@ -128,7 +182,8 @@ impl RecommendationsEngine {
                             all_user_authors_with_number_of_books_reserved
                                 .iter()
                                 .map(|(user_author, _)| {
-                                    author_match_score
+                                    coefficients_storage
+                                        .author_match_score
                                         .get(&(new_author.clone(), (*user_author).clone()))
                                         .cloned()
                                         .unwrap_or_default()
@@ -138,37 +193,33 @@ impl RecommendationsEngine {
                     })
                     .sorted_by_key(|(_, score)| -*score)
                     .filter_map(|(author, _)| {
-                        author_to_books_sorted_by_popularity
+                        coefficients_storage
+                            .author_to_books_sorted_by_popularity
                             .get(author)
                             .and_then(|author_books| author_books.first().cloned())
                     })
-                    .take(no_of_recommendations)
+                    .take(self.no_of_recommendations)
                     .collect();
 
-                (
+                self.user_to_recommendations.insert(
                     *user_id,
                     Recommendations {
-                        most_popular: books_sorted_by_popularity
+                        most_popular: coefficients_storage
+                            .books_sorted_by_popularity
                             .iter()
                             .filter(|book_id| !all_books_reserved_by_user.contains(book_id))
-                            .take(no_of_recommendations)
+                            .take(self.no_of_recommendations)
                             .cloned()
                             .collect(),
                         author_match,
                         new_author_match,
-                        wild_tags_matches: vec![],
                     },
-                )
-            })
-            .collect();
-
-        Self {
-            user_to_recommendations,
-            no_of_recommendations,
-        }
+                );
+            });
+        Ok(())
     }
 
-    pub fn generate_recommendations_for_user(&self, user_id: UserId) -> Recommendations {
+    pub fn get_recommendations_for_user(&self, user_id: UserId) -> Recommendations {
         self.user_to_recommendations
             .get(&user_id)
             .cloned()

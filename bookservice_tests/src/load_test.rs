@@ -1,17 +1,84 @@
+use std::collections::HashMap;
+
 use rand::{Rng, thread_rng};
 use rand::prelude::SliceRandom;
 
 use bookservice_repository::api::BookDetails;
+use bookservice_repository::client::BookServiceRepositoryClient;
+use bookservice_reservations::api::UserDetails;
+use bookservice_reservations::client::BookServiceReservationsClient;
 
-#[test]
-fn generate_lots_of_books_and_user_reservations() {
-    const NO_OF_BOOKS_TO_GENERATE: usize = 1000;
+#[tokio::test]
+async fn generate_lots_of_books_and_user_reservations() {
+    const NO_OF_BOOKS_TO_GENERATE: usize = 10;
     const NO_OF_AUTHORS_TO_GENERATE: usize = 100;
+    const NO_OF_USERS_TO_GENERATE: usize = 10;
+    const NO_OF_RESERVATIONS: usize = 100;
 
     let mut rng = thread_rng();
+    let bookservice_repository_url = "http://127.0.0.1:8001";
+    let bookservice_reservations_url = "http://127.0.0.1:8002";
+
+    let bookservice_repository_client =
+        BookServiceRepositoryClient::new(bookservice_repository_url)
+            .expect("Failed to create client");
+
+    let bookservice_reservations_client =
+        BookServiceReservationsClient::new(bookservice_reservations_url)
+            .expect("Failed to create bookservice_reservations_client");
 
     let authors = generate_authors(&mut rng, NO_OF_AUTHORS_TO_GENERATE);
     let books = generate_books(&mut rng, NO_OF_BOOKS_TO_GENERATE, &authors);
+    let users = generate_users(&mut rng, NO_OF_USERS_TO_GENERATE);
+
+    let mut book_ids = vec![];
+
+    for book in books {
+        let book_id = bookservice_repository_client
+            .add_book(book)
+            .await
+            .expect("Failed to add book");
+        book_ids.push(book_id);
+
+        println!("Added book {}", book_id);
+    }
+
+    let mut user_ids = vec![];
+    for user in users {
+        let user_id = bookservice_reservations_client
+            .add_user(user)
+            .await
+            .expect("Failed to add user");
+        user_ids.push(user_id);
+        println!("Added user {}", user_id);
+    }
+
+    let mut reserved_books = HashMap::default();
+
+    for _ in 0..NO_OF_RESERVATIONS {
+        let book_id = book_ids.choose(&mut rng).unwrap();
+        let user_id = user_ids.choose(&mut rng).unwrap();
+        if let Some(currently_reserving_user) = reserved_books.remove(book_id) {
+            let result = bookservice_reservations_client
+                .unreserve_book(*book_id, *currently_reserving_user)
+                .await
+                .expect("Failed to unreserve book");
+            assert!(result, "Failed to unreserve book - result false");
+            println!(
+                "Unreserved book {} from user {}",
+                book_id, currently_reserving_user
+            );
+        }
+
+        let result = bookservice_reservations_client
+            .reserve_book(*book_id, *user_id)
+            .await
+            .expect("Failed to reserve book");
+        assert!(result, "Failed to reserve book  - result false");
+
+        reserved_books.insert(*book_id, user_id);
+        println!("Reserved book {} for user {}", book_id, user_id);
+    }
 }
 
 fn generate_authors(rng: &mut impl Rng, no_of_authors: usize) -> Vec<String> {
@@ -41,6 +108,20 @@ fn generate_books(
             publisher: format!("Publisher {}", no % 20),
             description: "Some long description that is long".to_string(),
             tags: vec![],
+        })
+        .collect()
+}
+
+fn generate_users(rng: &mut impl Rng, no_of_users_to_generate: usize) -> Vec<UserDetails> {
+    (0..no_of_users_to_generate)
+        .map(|no| UserDetails {
+            username: format!(
+                "{}_{}_{}",
+                FIRST_NAMES.choose(rng).unwrap(),
+                LAST_NAMES.choose(rng).unwrap(),
+                no
+            ),
+            favourite_tags: vec![],
         })
         .collect()
 }
