@@ -161,8 +161,7 @@ impl RecommendationsEngine {
                             .and_then(|author_books| {
                                 author_books
                                     .iter()
-                                    .filter(|book_id| !all_books_reserved_by_user.contains(book_id))
-                                    .next()
+                                    .find(|book_id| !all_books_reserved_by_user.contains(book_id))
                             })
                     })
                     .take(NO_OF_RECOMMENDATIONS)
@@ -178,8 +177,8 @@ impl RecommendationsEngine {
                         (
                             new_author,
                             all_user_authors_with_number_of_books_reserved
-                                .iter()
-                                .map(|(user_author, _)| {
+                                .keys()
+                                .map(|user_author| {
                                     coefficients_storage
                                         .author_match_score
                                         .get(&(new_author.clone(), (*user_author).clone()))

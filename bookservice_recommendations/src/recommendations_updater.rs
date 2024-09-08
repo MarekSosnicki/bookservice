@@ -67,7 +67,7 @@ impl RecommendationsUpdater {
         let mut processed_users_to_last_updated: HashMap<UserId, std::time::Instant> =
             Default::default();
 
-        while let Some(_) = periodic_updater.next().await {
+        while periodic_updater.next().await.is_some() {
             tracing::info!("Recommendations tick no {}", interval_no);
 
             // Every tick get all users
@@ -175,14 +175,14 @@ impl RecommendationsUpdater {
         book_id_to_details: &HashMap<BookId, BookDetails>,
     ) -> anyhow::Result<()> {
         let mut storage = self.coefficients_storage.lock();
-        storage.update_storage(&user_id_to_history, &book_id_to_details)?;
+        storage.update_storage(user_id_to_history, book_id_to_details)?;
 
         self.recommendations_engine
             .write()
             .update_recommendations_for_users(
                 &storage,
-                &user_id_to_reservations,
-                &user_id_to_history,
+                user_id_to_reservations,
+                user_id_to_history,
             )?;
         Ok(())
     }
