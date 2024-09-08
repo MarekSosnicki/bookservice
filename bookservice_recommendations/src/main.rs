@@ -40,6 +40,7 @@ fn init_telemetry() {
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     use actix_web::{App, HttpServer};
+    use anyhow::Context;
     use bookservice_recommendations::app_config::config_app;
     use bookservice_recommendations::recommendations_updater::RecommendationsUpdater;
     use paperclip::actix::web;
@@ -60,19 +61,25 @@ async fn main() -> anyhow::Result<()> {
 
     let provider = recommendations_updater.provider();
 
-    let _handle = recommendations_updater.start().await?;
+    let updater_handle = recommendations_updater.start();
 
-    HttpServer::new(move || {
-        App::new()
-            .wrap_api()
-            .wrap(TracingLogger::default())
-            .app_data(web::Data::new(provider.clone()))
-            .configure(config_app)
-            .with_json_spec_at("/apispec/v2")
-            .build()
-    })
-    .bind(("0.0.0.0", 8080))?
-    .run()
-    .await?;
+    let start_server = async {
+        HttpServer::new(move || {
+            App::new()
+                .wrap_api()
+                .wrap(TracingLogger::default())
+                .app_data(web::Data::new(provider.clone()))
+                .configure(config_app)
+                .with_json_spec_at("/apispec/v2")
+                .build()
+        })
+        .bind(("0.0.0.0", 8080))?
+        .run()
+        .await
+        .context("Http server failure")?;
+        Ok(())
+    };
+
+    tokio::try_join!(start_server, updater_handle)?;
     Ok(())
 }

@@ -441,6 +441,7 @@ dependencies = [
  "bookservice_repository",
  "bookservice_reservations",
  "config",
+ "futures-util",
  "itertools 0.13.0",
  "json-patch",
  "opentelemetry 0.23.0",

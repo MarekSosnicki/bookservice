@@ -7,7 +7,7 @@ use bookservice_reservations::api::{BookId, ReservationHistoryRecord, UserId};
 
 use crate::api::Recommendations;
 
-const NO_OF_RECOMMENDATIONS: usize = 4;
+const NO_OF_RECOMMENDATIONS: usize = 5;
 #[derive(Default)]
 pub struct RecommendationsEngine {
     user_to_recommendations: HashMap<UserId, Recommendations>,
@@ -20,7 +20,7 @@ pub struct CoefficientsStorage {
     author_to_books_sorted_by_popularity: HashMap<String, Vec<BookId>>,
     author_match_score: HashMap<(String, String), i64>,
     popularity_score: HashMap<BookId, i64>,
-    author_to_books: BTreeMap<String, Vec<BookId>>,
+    author_to_books: BTreeMap<String, HashSet<BookId>>,
     book_id_to_authors: HashMap<BookId, Vec<String>>,
     last_processed_timestamp_per_user: HashMap<UserId, i64>,
 }
@@ -34,6 +34,13 @@ impl CoefficientsStorage {
         for (book_id, details) in book_details.iter() {
             self.book_id_to_authors
                 .insert(*book_id, details.authors.clone());
+            for author in details.authors.iter() {
+                self.author_to_books
+                    .entry(author.clone())
+                    .or_default()
+                    .insert(*book_id);
+            }
+            self.popularity_score.entry(*book_id).or_default();
         }
 
         for (user_id, history_records) in user_to_history.iter() {
@@ -56,10 +63,6 @@ impl CoefficientsStorage {
                 if let Some(details) = book_details.get(&book_id) {
                     for author in details.authors.iter() {
                         user_history_authors.insert(author.clone());
-                        self.author_to_books
-                            .entry(author.clone())
-                            .or_default()
-                            .push(book_id);
                     }
                 } else {
                     tracing::warn!("Could not find details for {book_id}")
@@ -122,11 +125,6 @@ impl RecommendationsEngine {
         user_to_reservations: &HashMap<UserId, Vec<BookId>>,
         user_to_history: &HashMap<UserId, Vec<ReservationHistoryRecord>>,
     ) -> anyhow::Result<()> {
-        println!(
-            "Updating recommendations for {} users",
-            user_to_reservations.len()
-        );
-
         // Generate recommendations for each user
         user_to_reservations
             .iter()
