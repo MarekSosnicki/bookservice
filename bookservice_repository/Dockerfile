@@ -14,7 +14,7 @@ RUN cargo build --bin bookservice_repository --release --features server
 ###############
 FROM bitnami/minideb:bookworm
 RUN apt-get update && apt-get install -y \
-    build-essential checkinstall zlib1g-dev pkg-config libssl-dev -y
+    build-essential checkinstall zlib1g-dev pkg-config libssl-dev curl -y
 WORKDIR /app
 
 # copy server binary from build stage

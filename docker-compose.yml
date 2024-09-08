@@ -16,6 +16,11 @@ services:
     depends_on:
       - bookservice_repository_db
     restart: always
+    healthcheck:
+      test: curl --fail http://localhost:8080/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 
   bookservice_reservations_api:
@@ -37,6 +42,11 @@ services:
     depends_on:
       - bookservice_reservations_db
     restart: always
+    healthcheck:
+      test: curl --fail http://localhost:8080/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   bookservice_recommendations_api:
     ports:
@@ -59,6 +69,11 @@ services:
       - bookservice_repository_api
       - bookservice_reservations_api
     restart: always
+    healthcheck:
+      test: curl --fail http://localhost:8080/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   jaeger:
     image: jaegertracing/all-in-one:latest

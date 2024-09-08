@@ -15,7 +15,7 @@ RUN cargo build --bin bookservice_reservations --release --features server
 FROM bitnami/minideb:bookworm
 # This may fix open ssl issue
 RUN apt-get update && apt-get install -y \
-    build-essential checkinstall zlib1g-dev pkg-config libssl-dev -y
+    build-essential checkinstall zlib1g-dev pkg-config libssl-dev curl -y
 
 WORKDIR /app
 
