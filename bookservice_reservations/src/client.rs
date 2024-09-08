@@ -94,14 +94,9 @@ impl BookServiceReservationsClient {
     /// Calls POST /api/user/{user_id}/reservation/{book_id} endpoint
     /// Returns true if successful and false if failed to reserve
     pub async fn reserve_book(&self, book_id: BookId, user_id: UserId) -> anyhow::Result<bool> {
-        let response = self
-            .client
-            .post(format!(
-                "{}/api/user/{}/reservation/{}",
-                self.url, user_id, book_id
-            ))
-            .send()
-            .await?;
+        let url = format!("{}/api/user/{}/reservation/{}", self.url, user_id, book_id);
+        // This "json" part is required, as it adds some headers needed for nginx to process correctly
+        let response = self.client.post(url).json("").send().await?;
 
         if response.status() == StatusCode::FORBIDDEN {
             Ok(false)
@@ -109,7 +104,7 @@ impl BookServiceReservationsClient {
             Ok(true)
         } else {
             let error: String = response.json().await.unwrap_or_default();
-            bail!("Failed to get user {}", error)
+            bail!("Failed to get reserve book {}", error)
         }
     }
 

@@ -117,6 +117,21 @@ services:
     volumes:
       - bookservice_reservations_db:/var/lib/postgresql/data
 
+  proxy:
+    image: nginx
+    volumes:
+      - type: bind
+        source: nginx.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+    ports:
+      - 80:80
+    depends_on:
+      - bookservice_repository_api
+      - bookservice_reservations_api
+      - bookservice_recommendations_api
+    command: [ nginx-debug, '-g', 'daemon off;' ]
+
 volumes:
   bookservice_repository_db:
     driver: local

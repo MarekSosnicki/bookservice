@@ -12,7 +12,7 @@ use bookservice_reservations::client::BookServiceReservationsClient;
 /// Patches the book
 /// Gets list of books and checks if the book is there
 async fn bookservice_repository_e2e_test() {
-    let bookservice_repository_url = "http://127.0.0.1:8001";
+    let bookservice_repository_url = "http://127.0.0.1:80";
     let bookservice_repository_client =
         BookServiceRepositoryClient::new(bookservice_repository_url)
             .expect("Failed to create client");
@@ -89,8 +89,8 @@ async fn bookservice_repository_e2e_test() {
 /// Unreserves a book
 /// Gets history of reservations
 async fn bookservice_reservations_e2e_test() {
-    let bookservice_repository_url = "http://127.0.0.1:8001";
-    let bookservice_reservations_url = "http://127.0.0.1:8002";
+    let bookservice_repository_url = "http://127.0.0.1:80";
+    let bookservice_reservations_url = "http://127.0.0.1:80";
     let bookservice_repository_client =
         BookServiceRepositoryClient::new(bookservice_repository_url)
             .expect("Failed to create bookservice_repository_client");

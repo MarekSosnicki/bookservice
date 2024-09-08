@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use rand::{Rng, thread_rng};
 use rand::prelude::SliceRandom;
+use tokio::time;
 
 use bookservice_repository::api::BookDetails;
 use bookservice_repository::client::BookServiceRepositoryClient;
@@ -10,14 +11,14 @@ use bookservice_reservations::client::BookServiceReservationsClient;
 
 #[tokio::main]
 async fn main() {
-    const NO_OF_BOOKS_TO_GENERATE: usize = 100;
+    const NO_OF_BOOKS_TO_GENERATE: usize = 10;
     const NO_OF_AUTHORS_TO_GENERATE: usize = 100;
     const NO_OF_USERS_TO_GENERATE: usize = 10;
-    const NO_OF_RESERVATIONS: usize = 30;
+    const NO_OF_RESERVATIONS: usize = 10;
 
     let mut rng = thread_rng();
-    let bookservice_repository_url = "http://127.0.0.1:8001";
-    let bookservice_reservations_url = "http://127.0.0.1:8002";
+    let bookservice_repository_url = "http://127.0.0.1:80";
+    let bookservice_reservations_url = "http://127.0.0.1:80";
 
     let bookservice_repository_client =
         BookServiceRepositoryClient::new(bookservice_repository_url)
@@ -59,16 +60,20 @@ async fn main() {
         let book_id = book_ids.choose(&mut rng).unwrap();
         let user_id = user_ids.choose(&mut rng).unwrap();
         if let Some(currently_reserving_user) = reserved_books.remove(book_id) {
+            println!(
+                "Unreserving book {} from user {}",
+                book_id, currently_reserving_user
+            );
+
             let result = bookservice_reservations_client
                 .unreserve_book(*book_id, currently_reserving_user)
                 .await
                 .expect("Failed to unreserve book");
             assert!(result, "Failed to unreserve book - result false");
-            println!(
-                "Unreserved book {} from user {}",
-                book_id, currently_reserving_user
-            );
         }
+        println!("Reserving book {} for user {}", book_id, user_id);
+
+        time::sleep(std::time::Duration::from_secs(1)).await;
 
         let result = bookservice_reservations_client
             .reserve_book(*book_id, *user_id)
@@ -77,7 +82,6 @@ async fn main() {
         assert!(result, "Failed to reserve book  - result false");
 
         reserved_books.insert(*book_id, *user_id);
-        println!("Reserved book {} for user {}", book_id, user_id);
     }
 
     for (book_id, user_id) in reserved_books {
